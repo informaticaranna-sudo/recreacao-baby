@@ -105,6 +105,7 @@ dialog::backdrop{background:#0006}
       <input id="mat" placeholder="EX.: 2026-0001" autocomplete="off">
       <p class="err" id="err" role="alert"></p>
       <button class="pri w" id="go" style="margin-top:4px">Entrar</button>
+      <p class="sm" style="background:#ffe1e6;color:#b0245a;border-radius:12px;padding:10px">Aviso: este site é um protótipo com acessos demonstrativos e dados no navegador. Não use para pagamentos reais antes de configurar autenticação e armazenamento privados no servidor.</p>
       <p class="sm" style="font-weight:700;margin:18px 0 0;letter-spacing:.05em">✨ ACESSO RÁPIDO (DEMONSTRAÇÃO)</p>
       <button class="qk" data-q="DIR-2026"><span>🏫 <b style="display:inline;margin-left:6px">Diretoria</b><small style="display:block;margin-left:34px">Acesso completo à escola</small></span><code>DIR-2026</code></button>
       <button class="qk" data-q="2026-0001"><span>👩‍👧 <b style="display:inline;margin-left:6px">Ana Souza</b><small style="display:block;margin-left:34px">Responsável de Alice e Lucas</small></span><code>2026-0001</code></button>
@@ -144,11 +145,11 @@ function seed(){
    .map((a,i)=>({id:"a"+i,nome:a[0],turma:a[1],resp:a[2],mat:"2026-000"+(i+1),nasc:""}));
   const fin=[];
   A.forEach((a,i)=>["2026-09","2026-10","2026-11"].forEach(m=>fin.push({id:uid(),aluno:a.id,mes:m,valor:VAL[a.turma],venc:m+"-10",pago:m<"2026-11"&&!(i===3&&m==="2026-10")})));
-  return{alunos:A,fin,bol:{},
+  return{alunos:A,fin,bol:{},comprovantes:[],
    posts:[{id:uid(),data:"2026-10-03",titulo:"Almoço de hoje",turma:"Geral",ic:"🍎",txt:"Arroz, feijão, frango desfiado e legumes. Sobremesa: frutas da estação."},{id:uid(),data:"2026-10-03",titulo:"Manhã cheia de arte",turma:"Maternal I",ic:"🧩",txt:"Pintura com os dedos e muita criatividade."},{id:uid(),data:"2026-10-02",titulo:"Soneca em dobro",turma:"Berçário",ic:"🌙",txt:"Hoje a turma dormiu mais cedo e acordou animada."}],
    eventos:[{id:uid(),data:"2026-10-30",titulo:"Festa da Família",turma:"Geral",txt:"Brincadeiras e lanche coletivo no pátio."},{id:uid(),data:"2026-11-12",titulo:"Reunião de pais",turma:"Geral",txt:"Entrega do boletim do 3º bimestre."}]};
 }
-function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos)return d}catch(e){}return seed()}
+function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos){if(!Array.isArray(d.comprovantes))d.comprovantes=[];return d}}catch(e){}return seed()}
 let db=load(),U=null,pg="inicio",selAl=null;
 const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch(e){}};
 const dir=()=>U.role==="dir";
@@ -177,11 +178,11 @@ function dlg(html,ok){
 }
 
 /* layout */
-const PAGES=[["inicio","🏠 Início"],["agenda","✨ Agenda"],["calendario","🗓 Calendário"],["boletim","📖 Boletim"],["financeiro","💳 Financeiro"],["alunos","👥 Alunos & Turmas",1],["painel","🏫 Painel de Turmas",1]];
+const PAGES=[["inicio","🏠 Início"],["agenda","✨ Agenda"],["calendario","🗓 Calendário"],["boletim","📖 Boletim"],["financeiro","💳 Financeiro"],["comprovantes","🧾 Comprovantes"],["alunos","👥 Alunos & Turmas",1],["painel","🏫 Painel de Turmas",1]];
 function draw(){
   $("#who").innerHTML=esc(U.nome)+`<span class="badge">${dir()?"Diretoria":"Responsável"}</span>`;
   $("#nav").innerHTML=PAGES.filter(p=>dir()||!p[2]).map(p=>`<button class="${p[0]===pg?"on":""}" data-g="${p[0]}">${p[1]}</button>`).join("");
-  $("#pg").innerHTML=({inicio,agenda,calendario,boletim,financeiro,alunos,painel})[pg]();
+  $("#pg").innerHTML=({inicio,agenda,calendario,boletim,financeiro,comprovantes,alunos,painel})[pg]();
 }
 $("#nav").onclick=e=>{const b=e.target.closest("[data-g]");if(b){pg=b.dataset.g;draw();scrollTo(0,0)}};
 const empty=t=>`<p class="empty">${t}</p>`;
@@ -219,7 +220,40 @@ function boletim(){
 }
 function financeiro(){
   const ids=meus().map(a=>a.id),F=db.fin.filter(f=>ids.includes(f.aluno)).sort((a,b)=>a.venc.localeCompare(b.venc));
-  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div><div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th>${dir()?"<th></th>":""}</tr>${F.map(f=>{const s=status(f);return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span></td>${dir()?`<td><button class="ghost" data-a="pay" data-i="${f.id}">${f.pago?"Desfazer":"Marcar pago"}</button></td>`:""}</tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
+  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2><button class="ghost" data-g="comprovantes">Ver comprovantes</button></div><div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th>${dir()?"<th></th>":""}</tr>${F.map(f=>{const s=status(f);return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span></td>${dir()?`<td><button class="ghost" data-a="pay" data-i="${f.id}">${f.pago?"Desfazer":"Marcar pago"}</button></td>`:""}</tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
+}
+function comprovantes(){
+  const mine=meus().map(a=>a.id);
+  const C=(db.comprovantes||[]).filter(c=>dir()||mine.includes(c.aluno)).sort((a,b)=>b.enviado.localeCompare(a.enviado));
+  const alunoOptions=meus().map(a=>`<option value="${a.id}">${esc(a.nome)} — ${esc(a.turma)}</option>`).join("");
+  const form=!dir()?`<section class="card">
+    <div class="hd"><h2>📤 Enviar comprovante</h2><span class="tg t-op">Mensalidade</span></div>
+    <div style="background:#fff0c4;color:#7a3a00;padding:12px 14px;border-radius:16px;margin-bottom:12px">
+      <b>Protótipo de demonstração</b><br>
+      Este arquivo ainda não envia comprovantes para um servidor seguro. Não use documentos ou dados reais nesta versão. O arquivo selecionado não é armazenado; somente o nome e os dados do formulário ficam neste navegador.
+    </div>
+    <label for="c-aluno">Criança</label><select id="c-aluno">${alunoOptions}</select>
+    <div class="row"><div><label for="c-mes">Mês de referência</label><input id="c-mes" type="month" value="${hojeISO().slice(0,7)}"></div>
+    <div><label for="c-valor">Valor pago (R$)</label><input id="c-valor" inputmode="decimal" placeholder="350,00"></div></div>
+    <label for="c-data">Data do pagamento</label><input id="c-data" type="date" value="${hojeISO()}">
+    <label for="c-arquivo">Comprovante (PDF, JPG ou PNG; até 5 MB)</label><input id="c-arquivo" type="file" accept=".pdf,image/jpeg,image/png">
+    <button class="pri" data-a="csubmit">Registrar envio de demonstração</button>
+  </section>`:"";
+  const rows=C.map(c=>{
+    const a=aluno(c.aluno),statusLabel=c.status==="confirmed"?"Confirmado":c.status==="rejected"?"Recusado":"Aguardando análise";
+    const cls=c.status==="confirmed"?"t-ok":c.status==="rejected"?"t-late":"t-op";
+    return `<div class="item"><span class="ic">🧾</span><div><b>${esc(a?.nome||"Aluno")}</b><br>
+      <small>${esc(mesNome(c.mes+"-01"))} • ${brl(c.valor)} • Enviado em ${dia(c.enviado)}</small><br>
+      <small>Arquivo selecionado: ${esc(c.arquivo)}</small><br>
+      <span class="tg ${cls}">${statusLabel}</span>
+      ${c.motivo?`<div class="sm">Motivo: ${esc(c.motivo)}</div>`:""}
+      ${c.revisadoEm?`<small>Revisado em ${dia(c.revisadoEm)} por ${esc(c.revisadoPor||"Diretoria")}</small>`:""}
+      </div>${dir()&&c.status==="pending"?`<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="pri" data-a="cconfirm" data-i="${c.id}">Confirmar</button><button class="ghost" data-a="creject" data-i="${c.id}">Recusar</button></div>`:""}</div>`;
+  }).join("");
+  const whats=dir()?`<section class="card"><h2>💬 Aviso pelo WhatsApp</h2><p class="sm">Protótipo: informe o telefone do responsável com código do país (ex.: 5521999999999). O botão abre uma mensagem preparada; você ainda precisará enviá-la no WhatsApp.</p><label for="c-tel">Telefone do responsável</label><input id="c-tel" inputmode="tel" placeholder="5521999999999"><label for="c-msg">Mensagem</label><textarea id="c-msg">Olá! A diretoria da Recreação Baby atualizou o status do comprovante de mensalidade. Entre na sua área do responsável para consultar.</textarea><button class="ghost" data-a="cwa">Abrir WhatsApp</button></section>`:"";
+  return `${form}<section class="card"><div class="hd"><h2>🧾 ${dir()?"Comprovantes recebidos":"Meus comprovantes"}</h2>${dir()?`<span class="tg t-op">${C.filter(c=>c.status==="pending").length} pendente(s)</span>`:""}</div>
+  <div style="background:#ffe1e6;color:#b0245a;padding:12px 14px;border-radius:16px;margin-bottom:12px"><b>Atenção:</b> esta tela é somente uma demonstração local. Os registros ficam no armazenamento deste navegador e não são compartilhados entre dispositivos. A confirmação aqui não comprova recebimento bancário.</div>
+  ${rows||empty("Nenhum comprovante registrado.")}</section>${whats}`;
 }
 function alunos(){
   return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div><div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Responsável</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.resp)}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
@@ -241,6 +275,36 @@ $("#pg").onclick=e=>{
   else if(a==="eadd"){const ti=$("#et").value.trim();if(!ti||!$("#ed").value)return;db.eventos.push({id:uid(),data:$("#ed").value,titulo:ti,turma:$("#eu").value,txt:$("#ex").value.trim()})}
   else if(a==="edel")db.eventos=db.eventos.filter(p=>p.id!==i);
   else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value};save();$("#ok").textContent="Boletim salvo.";return}
+  else if(a==="csubmit"){
+    const alunoId=$("#c-aluno")?.value, mes=$("#c-mes")?.value, valorTxt=$("#c-valor")?.value.trim(), data=$("#c-data")?.value, file=$("#c-arquivo")?.files?.[0];
+    if(!alunoId||!mes||!valorTxt||!data||!file){alert("Preencha os campos e selecione o comprovante.");return}
+    if(!["application/pdf","image/jpeg","image/png"].includes(file.type)){alert("Envie um PDF, JPG ou PNG.");return}
+    if(file.size>5*1024*1024){alert("O arquivo deve ter no máximo 5 MB.");return}
+    const valor=Number(valorTxt.replace(/\./g,"").replace(",","."));
+    if(!Number.isFinite(valor)||valor<=0){alert("Informe um valor válido.");return}
+    db.comprovantes=db.comprovantes||[];
+    db.comprovantes.push({id:uid(),aluno:alunoId,mes,valor,enviado:data,arquivo:file.name,status:"pending",motivo:"",revisadoEm:"",revisadoPor:""});
+    save();draw();alert("Registro de demonstração criado. O arquivo NÃO foi enviado nem armazenado.");
+    return;
+  }
+  else if(a==="cconfirm"){
+    if(!dir()){alert("Somente a diretoria pode confirmar.");return}
+    const c=(db.comprovantes||[]).find(x=>x.id===i);if(!c)return;
+    if(!confirm("Confirmar manualmente o recebimento deste pagamento? Use somente após conferir o pagamento fora do sistema."))return;
+    c.status="confirmed";c.revisadoEm=hojeISO();c.revisadoPor=U.nome;
+  }
+  else if(a==="creject"){
+    if(!dir()){alert("Somente a diretoria pode recusar.");return}
+    const c=(db.comprovantes||[]).find(x=>x.id===i);if(!c)return;
+    const motivo=prompt("Informe o motivo da recusa:");if(!motivo||!motivo.trim())return;
+    c.status="rejected";c.motivo=motivo.trim();c.revisadoEm=hojeISO();c.revisadoPor=U.nome;
+  }
+  else if(a==="cwa"){
+    const tel=($("#c-tel")?.value||"").replace(/\D/g,""),msg=$("#c-msg")?.value||"";
+    if(tel.length<10){alert("Informe o telefone com código do país, por exemplo 5521999999999.");return}
+    window.open("https://wa.me/"+tel+"?text="+encodeURIComponent(msg),"_blank","noopener");
+    return;
+  }
   else if(a==="pay"){const f=db.fin.find(f=>f.id===i);f.pago=!f.pago}
   else if(a==="anew")return dlg(formAluno(),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const n=db.alunos.length+1,id=uid(),m="2026-"+String(Math.max(n,...db.alunos.map(x=>+x.mat.slice(5)+1))).padStart(4,"0");db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:m,nasc:""});["2026-11"].forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false}));save();draw()});
   else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";Object.assign(x,v);save();draw()})}
