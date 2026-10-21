@@ -81,6 +81,12 @@ dialog::backdrop{background:#0006}
 @media(max-width:820px){#login{grid-template-columns:1fr}.l-left{min-height:340px}.l-left h1{font-size:2rem}.hello{padding:22px}.area{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
+  <!-- 1) Cole dentro de <head> no seu index.html, antes de </head> -->
+<link rel="manifest" href="/recreacao-baby/manifest.webmanifest">
+<meta name="theme-color" content="#FFD66B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="/recreacao-baby/icons/icon-192.png">
 </head>
 <body>
 
@@ -242,6 +248,18 @@ $("#pg").onclick=e=>{
   save();draw();
 };
 $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
+</script>
+  <!-- 2) Cole antes de </body>, no fim do index.html -->
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/recreacao-baby/service-worker.js", {
+        scope: "/recreacao-baby/"
+      }).catch(function (error) {
+        console.error("Falha ao registrar o service worker:", error);
+      });
+    });
+  }
 </script>
 </body>
 </html>
