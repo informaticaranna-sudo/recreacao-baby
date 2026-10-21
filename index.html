@@ -178,7 +178,7 @@ $("#go").onclick=tentar;
 $("#mat").onkeydown=$("#pw").onkeydown=e=>{if(e.key==="Enter")tentar()};
 document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>entrar(b.dataset.q,b.dataset.q));
 $("#out").onclick=()=>{U=null;$("#mat").value=$("#pw").value="";$("#err").textContent="";$("#app").classList.add("hide");$("#login").classList.remove("hide")};
-const COD_ESCOLA="010266";
+const COD_ESCOLA="020166";
 const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa conta tem acesso completo: cadastra alunos, publica na agenda, lança o boletim e confere os pagamentos.</p>
 <label for="dn">Seu nome</label><input id="dn" name="nome" autocomplete="name">
 <label for="du">Usuário de acesso</label><input id="du" name="user" autocomplete="off" placeholder="EX.: DIR-MARIA">
@@ -193,15 +193,19 @@ const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa 
   if(v.senha!==v.senha2)return"As senhas não conferem.";
   db.dir.push({id:uid(),nome:v.nome,user:u,senha:v.senha});save();entrar(u,v.senha);
 },"Criar conta");
-$("#newdir").onclick=()=>dlg(`<h2>🔒 Autorização da escola</h2><p class="sm">Para criar uma conta da direção, digite o código de autorização da escola.</p><label for="dc">Código de autorização</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="off">`,v=>{
-  if(v.cod!==COD_ESCOLA)return"Código incorreto.";
-  setTimeout(novaDir,0);
-},"Liberar");
+$("#newdir").onclick=()=>{
+  dlg(`<h2>🔒 Autorização da escola</h2><p class="sm">Para criar uma conta da direção, digite o código de autorização da escola.</p><label for="dc">Código de autorização</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="new-password" autocapitalize="off" spellcheck="false"><label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px"><input type="checkbox" id="dmost" style="width:auto"> Mostrar código</label>`,v=>{
+    if((v.cod||"").replace(/\D/g,"")!==COD_ESCOLA)return"Código incorreto.";
+    setTimeout(novaDir,0);
+  },"Liberar");
+  $("#dmost").onchange=e=>{$("#dc").type=e.target.checked?"text":"password"};
+  $("#dc").focus();
+};
 $("#demo").onclick=()=>{if(confirm("Restaurar os dados de demonstração? Tudo que foi alterado será perdido.")){db=seed();save();draw()}};
 
 function dlg(html,ok,lbl){
   $("#fm").innerHTML=html+'<p class="err" id="de"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="ghost" id="dx">Cancelar</button><button type="button" class="pri" id="dk">'+(lbl||"Salvar")+'</button></div>';
-  $("#dlg").showModal();$("#dx").onclick=()=>$("#dlg").close();
+  $("#dlg").showModal();$("#fm").onsubmit=e=>{e.preventDefault();$("#dk").click()};$("#dx").onclick=()=>$("#dlg").close();
   $("#dk").onclick=()=>{const v=Object.fromEntries([...$("#fm").elements].filter(e=>e.name).map(e=>[e.name,e.value.trim()]));const r=ok(v);if(r)$("#de").textContent=r;else $("#dlg").close()};
 }
 
