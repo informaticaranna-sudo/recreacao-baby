@@ -33,7 +33,7 @@ button{cursor:pointer}
 label{display:block;font-weight:500;margin:12px 0 4px}
 input,select,textarea{width:100%;padding:11px 16px;border:1px solid var(--line);border-radius:999px;background:#fff}
 textarea{border-radius:18px;min-height:90px;resize:vertical}
-#mat{text-align:center;letter-spacing:.12em}
+#mat,#pw{text-align:center;letter-spacing:.12em}
 .pri{background:var(--coral);color:#fff;border:0;border-radius:999px;padding:10px 20px;font-weight:700}
 .pri:hover{background:var(--coral2)}
 .pri.w{width:100%;margin-top:16px}
@@ -41,6 +41,13 @@ textarea{border-radius:18px;min-height:90px;resize:vertical}
 .err{color:var(--pinkT);min-height:1.3em;margin:8px 0 0;font-size:.9rem}
 .qk{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--cream);border:1px solid #fbefb8;border-radius:22px;padding:12px 14px;margin-top:8px}
 .qk b{display:block}.qk small{color:var(--mute)}.qk code{color:#b04a00;font-weight:700}
+.pri.s{padding:6px 14px;font-size:.88rem}
+.ghost.w{width:100%;margin-top:10px;padding:9px 14px}
+.t-wait{background:var(--blue);color:var(--blueT)}
+.flash{background:var(--green);color:var(--greenT);border-radius:18px;padding:10px 16px;margin-bottom:14px;font-weight:500}
+.alerta{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--blue);color:var(--blueT);border-radius:22px;padding:12px 18px;font-weight:700}
+.comp{display:block;width:100%;max-height:50vh;object-fit:contain;border-radius:14px;border:1px solid var(--line);background:var(--cream);margin-top:10px}
+img.comp{cursor:zoom-in}img.comp.big{max-height:none;cursor:zoom-out}
 /* app */
 header{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#fffffff0;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
 nav{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
@@ -67,7 +74,7 @@ main{max-width:1180px;margin:0 auto;padding:22px 16px 60px;display:grid;gap:20px
 .x{background:none;border:0;color:var(--pinkT);font-size:1.05rem}
 .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 .sc{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:520px}
+table{width:100%;border-collapse:collapse;min-width:640px}
 th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
 th{font-size:.8rem;color:var(--mute);font-weight:700}
 .tg{border-radius:999px;padding:2px 12px;font-size:.8rem;font-weight:700;display:inline-block}
@@ -94,11 +101,14 @@ dialog::backdrop{background:#0006}
   <div class="l-right">
     <div class="box">
       <h2>Entrar no app</h2>
-      <p class="sm">Responsáveis usam a <b>matrícula do aluno</b>; a diretoria usa o código da escola. Nada de senhas complicadas. 💛</p>
-      <label for="mat">🔑 Matrícula de acesso</label>
-      <input id="mat" placeholder="EX.: 2026-0001" autocomplete="off">
+      <p class="sm">Responsáveis: usuário e senha são a <b>matrícula do aluno</b> (ex.: 2026-0001). Diretoria: use o usuário e a senha da sua conta. 💛</p>
+      <label for="mat">👤 Usuário (matrícula)</label>
+      <input id="mat" placeholder="EX.: 2026-0001" autocomplete="username">
+      <label for="pw">🔑 Senha</label>
+      <input id="pw" type="password" placeholder="Responsáveis: repita a matrícula" autocomplete="current-password">
       <p class="err" id="err" role="alert"></p>
       <button class="pri w" id="go" style="margin-top:4px">Entrar</button>
+      <button class="ghost w" id="newdir" type="button">🏫 Criar conta da direção</button>
       <p class="sm" style="font-weight:700;margin:18px 0 0;letter-spacing:.05em">✨ ACESSO RÁPIDO (DEMONSTRAÇÃO)</p>
       <button class="qk" data-q="DIR-2026"><span>🏫 <b style="display:inline;margin-left:6px">Diretoria</b><small style="display:block;margin-left:34px">Acesso completo à escola</small></span><code>DIR-2026</code></button>
       <button class="qk" data-q="2026-0001"><span>👩‍👧 <b style="display:inline;margin-left:6px">Ana Souza</b><small style="display:block;margin-left:34px">Responsável de Alice e Lucas</small></span><code>2026-0001</code></button>
@@ -133,39 +143,64 @@ const dia=d=>d.split("-").reverse().join("/");
 const hojeISO=()=>new Date().toISOString().slice(0,10);
 const mesNome=m=>["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+m.slice(5,7)-1]+"/"+m.slice(0,4);
 
+const seedDir=()=>[{id:"d0",nome:"Tia Rosa",user:"DIR-2026",senha:"DIR-2026"}];
 function seed(){
   const A=[["Alice Souza","Maternal I","Ana Souza"],["Lucas Souza","Berçário","Ana Souza"],["Helena Costa","Maternal II","Paula Costa"],["Miguel Lima","Jardim I","Rafael Lima"],["Sofia Alves","Maternal I","Carla Alves"],["Theo Ramos","Berçário","Juliana Ramos"],["Laura Pires","Maternal II","Bruno Pires"]]
    .map((a,i)=>({id:"a"+i,nome:a[0],turma:a[1],resp:a[2],mat:"2026-000"+(i+1),nasc:""}));
   const fin=[];
   A.forEach((a,i)=>["2026-09","2026-10","2026-11"].forEach(m=>fin.push({id:uid(),aluno:a.id,mes:m,valor:VAL[a.turma],venc:m+"-10",pago:m<"2026-11"&&!(i===3&&m==="2026-10")})));
-  return{alunos:A,fin,bol:{},
+  return{alunos:A,fin,bol:{},dir:seedDir(),seq:{},
    posts:[{id:uid(),data:"2026-10-03",titulo:"Almoço de hoje",turma:"Geral",ic:"🍎",txt:"Arroz, feijão, frango desfiado e legumes. Sobremesa: frutas da estação."},{id:uid(),data:"2026-10-03",titulo:"Manhã cheia de arte",turma:"Maternal I",ic:"🧩",txt:"Pintura com os dedos e muita criatividade."},{id:uid(),data:"2026-10-02",titulo:"Soneca em dobro",turma:"Berçário",ic:"🌙",txt:"Hoje a turma dormiu mais cedo e acordou animada."}],
    eventos:[{id:uid(),data:"2026-10-30",titulo:"Festa da Família",turma:"Geral",txt:"Brincadeiras e lanche coletivo no pátio."},{id:uid(),data:"2026-11-12",titulo:"Reunião de pais",turma:"Geral",txt:"Entrega do boletim do 3º bimestre."}]};
 }
-function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos)return d}catch(e){}return seed()}
-let db=load(),U=null,pg="inicio",selAl=null;
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch(e){}};
+function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos){d.dir=d.dir||seedDir();d.seq=d.seq||{};return d}}catch(e){}return seed()}
+let db=load(),U=null,pg="inicio",selAl=null,aviso="";
+const save=q=>{try{localStorage.setItem(K,JSON.stringify(db));return true}catch(e){if(!q)alert("Não foi possível salvar: o armazenamento do navegador está cheio.");return false}};
+const avisoHTML=()=>{const t=aviso;aviso="";return t?`<div class="flash" role="status">${esc(t)}</div>`:""};
+const pendentes=()=>dir()?db.fin.filter(f=>f.comp?.st==="pend").length:0;
 const dir=()=>U.role==="dir";
 const meus=()=>dir()?db.alunos:db.alunos.filter(a=>a.resp===U.nome);
 const aluno=id=>db.alunos.find(a=>a.id===id);
 const visivel=p=>dir()||p.turma==="Geral"||meus().some(a=>a.turma===p.turma);
-const status=f=>f.pago?["Pago","t-ok"]:f.venc<hojeISO()?["Atrasado","t-late"]:["Em aberto","t-op"];
+const status=f=>f.pago?["Pago","t-ok"]:f.comp?.st==="pend"?["Aguardando confirmação","t-wait"]:f.venc<hojeISO()?["Atrasado","t-late"]:["Em aberto","t-op"];
 
 /* login */
-function entrar(m){
-  m=m.trim().toUpperCase();
-  if(m==="DIR-2026")U={role:"dir",nome:"Tia Rosa — Direção"};
-  else{const a=db.alunos.find(a=>a.mat.toUpperCase()===m);if(!a){$("#err").textContent="Matrícula não encontrada. Confira o número e tente de novo.";return}U={role:"resp",nome:a.resp}}
-  $("#err").textContent="";$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0);
+function entrar(u,p){
+  u=(u||"").trim().toUpperCase();p=(p||"").trim();
+  const d=db.dir.find(x=>x.user===u),a=db.alunos.find(x=>x.mat.toUpperCase()===u);
+  if(d&&d.senha===p)U={role:"dir",nome:d.nome};
+  else if(!d&&a&&p.toUpperCase()===a.mat.toUpperCase())U={role:"resp",nome:a.resp};
+  else{$("#err").textContent="Usuário ou senha incorretos. Responsáveis: use a matrícula do aluno nos dois campos.";return}
+  $("#err").textContent="";$("#mat").value=$("#pw").value="";$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0);
 }
-$("#go").onclick=()=>entrar($("#mat").value);
-$("#mat").onkeydown=e=>{if(e.key==="Enter")entrar(e.target.value)};
-document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>entrar(b.dataset.q));
-$("#out").onclick=()=>{U=null;$("#app").classList.add("hide");$("#login").classList.remove("hide")};
+const tentar=()=>entrar($("#mat").value,$("#pw").value);
+$("#go").onclick=tentar;
+$("#mat").onkeydown=$("#pw").onkeydown=e=>{if(e.key==="Enter")tentar()};
+document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>entrar(b.dataset.q,b.dataset.q));
+$("#out").onclick=()=>{U=null;$("#mat").value=$("#pw").value="";$("#err").textContent="";$("#app").classList.add("hide");$("#login").classList.remove("hide")};
+const COD_ESCOLA="010266";
+const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa conta tem acesso completo: cadastra alunos, publica na agenda, lança o boletim e confere os pagamentos.</p>
+<label for="dn">Seu nome</label><input id="dn" name="nome" autocomplete="name">
+<label for="du">Usuário de acesso</label><input id="du" name="user" autocomplete="off" placeholder="EX.: DIR-MARIA">
+<label for="ds">Senha</label><input id="ds" name="senha" type="password" autocomplete="new-password">
+<label for="ds2">Confirmar senha</label><input id="ds2" name="senha2" type="password" autocomplete="new-password">`,v=>{
+  const u=v.user.toUpperCase();
+  if(!v.nome||!u||!v.senha)return"Preencha todos os campos.";
+  if(!/^[A-Z0-9._-]{3,20}$/.test(u))return"Usuário: 3 a 20 caracteres (letras, números, ponto, hífen ou sublinhado), sem espaços.";
+  if(/^\d{4}-\d+$/.test(u))return"Esse formato é reservado às matrículas dos alunos. Escolha outro usuário.";
+  if(db.dir.some(d=>d.user===u))return"Esse usuário já existe.";
+  if(v.senha.length<4)return"A senha precisa ter pelo menos 4 caracteres.";
+  if(v.senha!==v.senha2)return"As senhas não conferem.";
+  db.dir.push({id:uid(),nome:v.nome,user:u,senha:v.senha});save();entrar(u,v.senha);
+},"Criar conta");
+$("#newdir").onclick=()=>dlg(`<h2>🔒 Autorização da escola</h2><p class="sm">Para criar uma conta da direção, digite o código de autorização da escola.</p><label for="dc">Código de autorização</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="off">`,v=>{
+  if(v.cod!==COD_ESCOLA)return"Código incorreto.";
+  setTimeout(novaDir,0);
+},"Liberar");
 $("#demo").onclick=()=>{if(confirm("Restaurar os dados de demonstração? Tudo que foi alterado será perdido.")){db=seed();save();draw()}};
 
-function dlg(html,ok){
-  $("#fm").innerHTML=html+'<p class="err" id="de"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="ghost" id="dx">Cancelar</button><button type="button" class="pri" id="dk">Salvar</button></div>';
+function dlg(html,ok,lbl){
+  $("#fm").innerHTML=html+'<p class="err" id="de"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="ghost" id="dx">Cancelar</button><button type="button" class="pri" id="dk">'+(lbl||"Salvar")+'</button></div>';
   $("#dlg").showModal();$("#dx").onclick=()=>$("#dlg").close();
   $("#dk").onclick=()=>{const v=Object.fromEntries([...$("#fm").elements].filter(e=>e.name).map(e=>[e.name,e.value.trim()]));const r=ok(v);if(r)$("#de").textContent=r;else $("#dlg").close()};
 }
@@ -174,7 +209,7 @@ function dlg(html,ok){
 const PAGES=[["inicio","🏠 Início"],["agenda","✨ Agenda"],["calendario","🗓 Calendário"],["boletim","📖 Boletim"],["financeiro","💳 Financeiro"],["alunos","👥 Alunos & Turmas",1],["painel","🏫 Painel de Turmas",1]];
 function draw(){
   $("#who").innerHTML=esc(U.nome)+`<span class="badge">${dir()?"Diretoria":"Responsável"}</span>`;
-  $("#nav").innerHTML=PAGES.filter(p=>dir()||!p[2]).map(p=>`<button class="${p[0]===pg?"on":""}" data-g="${p[0]}">${p[1]}</button>`).join("");
+  $("#nav").innerHTML=PAGES.filter(p=>dir()||!p[2]).map(p=>`<button class="${p[0]===pg?"on":""}" data-g="${p[0]}">${p[1]}${p[0]==="financeiro"&&pendentes()?`<span class="badge">${pendentes()}</span>`:""}</button>`).join("");
   $("#pg").innerHTML=({inicio,agenda,calendario,boletim,financeiro,alunos,painel})[pg]();
 }
 $("#nav").onclick=e=>{const b=e.target.closest("[data-g]");if(b){pg=b.dataset.g;draw();scrollTo(0,0)}};
@@ -188,6 +223,7 @@ function inicio(){
   const ult=db.posts.filter(visivel).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,3);
   const dt=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return`<section class="hello grad"><small>${dt}</small><h1>Olá, ${dir()?"Direção":esc(U.nome.split(" ")[0])}! 👋</h1><div class="sm" style="font-size:1rem">Tudo pronto para mais um dia de brincadeiras e aprendizado por aqui.</div></section>
+  ${pendentes()?`<div class="alerta"><span>🧾 ${pendentes()} comprovante(s) aguardando sua confirmação</span><button class="pri s" data-g="financeiro">Conferir</button></div>`:""}
   <div class="stats"><div class="st" style="background:var(--blue);color:var(--blueT)"><span class="e">🧒</span><b>${ids.length}</b><span>Alunos matriculados</span></div>
   <div class="st" style="background:var(--yel);color:var(--yelT)"><span class="e">💛</span><b>${brl(F.reduce((s,f)=>s+f.valor,0))}</b><span>Mensalidades em aberto</span></div>
   <div class="st" style="background:var(--pink);color:var(--pinkT)"><span class="e">⏰</span><b>${F.filter(f=>f.venc<H).length}</b><span>Mensalidades atrasadas</span></div>
@@ -213,10 +249,20 @@ function boletim(){
 }
 function financeiro(){
   const ids=meus().map(a=>a.id),F=db.fin.filter(f=>ids.includes(f.aluno)).sort((a,b)=>a.venc.localeCompare(b.venc));
-  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div><div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th>${dir()?"<th></th>":""}</tr>${F.map(f=>{const s=status(f);return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span></td>${dir()?`<td><button class="ghost" data-a="pay" data-i="${f.id}">${f.pago?"Desfazer":"Marcar pago"}</button></td>`:""}</tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
+  const acao=f=>{
+    const c=f.comp;
+    if(dir()){
+      if(c?.st==="pend")return`<button class="pri s" data-a="rev" data-i="${f.id}">🧾 Conferir</button>`;
+      return(c?.img?`<button class="ghost" data-a="rev" data-i="${f.id}" aria-label="Ver comprovante">🧾</button> `:"")+`<button class="ghost" data-a="pay" data-i="${f.id}">${f.pago?"Desfazer":"Marcar pago"}</button>`;
+    }
+    if(f.pago)return"";
+    if(c?.st==="pend")return`<span class="sm">Enviado em ${dia(c.env)}</span>`;
+    return`<button class="pri s" data-a="pagar" data-i="${f.id}">💳 ${c?.st==="rej"?"Reenviar comprovante":"Pagar"}</button>`;
+  };
+  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div>${avisoHTML()}${dir()?"":`<p class="sm">Para pagar, toque em <b>Pagar</b>, faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p>`}<div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr>${F.map(f=>{const s=status(f),c=f.comp;return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span>${c?.st==="rej"&&!f.pago?`<div class="sm">Comprovante recusado${c.motivo?": "+esc(c.motivo):""}${dir()?"":". Envie outro."}</div>`:""}</td><td>${acao(f)}</td></tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
 }
 function alunos(){
-  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div><div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Responsável</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.resp)}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
+  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div>${avisoHTML()}<div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Responsável</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.resp)}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
 }
 function painel(){
   return`<div class="two">${TURMAS.map(t=>{const A=db.alunos.filter(a=>a.turma===t),atr=db.fin.filter(f=>A.some(a=>a.id===f.aluno)&&!f.pago&&f.venc<hojeISO()).length,np=db.posts.filter(p=>p.turma===t).length;
@@ -224,8 +270,30 @@ function painel(){
 }
 
 /* ações */
-function formAluno(a){
-  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label>Turma</label><select name="turma">${TURMAS.map(t=>`<option ${t===a?.turma?"selected":""}>${t}</option>`).join("")}</select><label>Responsável</label><input name="resp" value="${esc(a?.resp)}">`;
+function formAluno(a,mat){
+  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label>Turma</label><select name="turma">${TURMAS.map(t=>`<option ${t===a?.turma?"selected":""}>${t}</option>`).join("")}</select><label>Responsável</label><input name="resp" value="${esc(a?.resp)}"><label for="mt">Matrícula</label><input id="mt" value="${esc(a?a.mat:mat)}" readonly style="background:var(--cream);text-align:center;letter-spacing:.12em"><p class="sm">${a?"A matrícula não pode ser alterada.":"Gerada automaticamente (ano-número). Será o login e a senha do responsável."}</p>`;
+}
+function proximaMat(){
+  const ano=String(new Date().getFullYear());
+  const ex=Math.max(0,...db.alunos.filter(a=>a.mat.startsWith(ano+"-")).map(a=>parseInt(a.mat.slice(5),10)||0));
+  const n=Math.max(ex,db.seq[ano]||0)+1;
+  return{ano,n,mat:ano+"-"+String(n).padStart(4,"0")};
+}
+function comprimir(file,cb){
+  const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);cb(c.toDataURL("image/jpeg",.72))};im.onerror=()=>cb(null);im.src=r.result};
+  r.onerror=()=>cb(null);r.readAsDataURL(file);
+}
+function revisar(f){
+  const x=aluno(f.aluno),c=f.comp,pend=c.st==="pend";
+  $("#fm").innerHTML=`<h2>🧾 Comprovante</h2><p class="sm">${esc(x?.nome)} • ${mesNome(f.mes)} • <b>${brl(f.valor)}</b><br>Enviado em ${dia(c.env)}${c.st==="ok"?` • aprovado em ${dia(c.ok)}`:""}</p><img id="ci" class="comp" src="${c.img}" alt="Foto do comprovante enviada pelo responsável" title="Toque para ampliar">${pend?`<label for="mo">Motivo, se for recusar (opcional)</label><input id="mo" placeholder="Ex.: valor diferente da mensalidade">`:""}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button type="button" class="ghost" id="dx">Fechar</button>${pend?'<button type="button" class="ghost" id="dr">Recusar</button><button type="button" class="pri" id="da">✓ Aprovar pagamento</button>':""}</div>`;
+  $("#dlg").showModal();
+  $("#dx").onclick=()=>$("#dlg").close();
+  $("#ci").onclick=e=>e.target.classList.toggle("big");
+  if(pend){
+    $("#da").onclick=()=>{f.pago=true;c.st="ok";c.ok=hojeISO();save();$("#dlg").close();draw()};
+    $("#dr").onclick=()=>{f.comp={st:"rej",env:c.env,motivo:$("#mo").value.trim()};save();$("#dlg").close();draw()};
+  }
 }
 $("#pg").onclick=e=>{
   const g=e.target.closest("[data-g]");if(g){pg=g.dataset.g;draw();return}
@@ -235,9 +303,23 @@ $("#pg").onclick=e=>{
   else if(a==="eadd"){const ti=$("#et").value.trim();if(!ti||!$("#ed").value)return;db.eventos.push({id:uid(),data:$("#ed").value,titulo:ti,turma:$("#eu").value,txt:$("#ex").value.trim()})}
   else if(a==="edel")db.eventos=db.eventos.filter(p=>p.id!==i);
   else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value};save();$("#ok").textContent="Boletim salvo.";return}
-  else if(a==="pay"){const f=db.fin.find(f=>f.id===i);f.pago=!f.pago}
-  else if(a==="anew")return dlg(formAluno(),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const n=db.alunos.length+1,id=uid(),m="2026-"+String(Math.max(n,...db.alunos.map(x=>+x.mat.slice(5)+1))).padStart(4,"0");db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:m,nasc:""});["2026-11"].forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false}));save();draw()});
-  else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";Object.assign(x,v);save();draw()})}
+  else if(a==="pay"){const f=db.fin.find(f=>f.id===i);if(f.pago&&f.comp&&!confirm("Desfazer a baixa? O comprovante anexado será removido."))return;f.pago=!f.pago;if(!f.pago)delete f.comp}
+  else if(a==="rev")return revisar(db.fin.find(f=>f.id===i));
+  else if(a==="pagar"){
+    const f=db.fin.find(f=>f.id===i),x=aluno(f.aluno);let img=null;
+    dlg(`<h2>💳 Pagar mensalidade</h2><p class="sm">${esc(x.nome)} • ${mesNome(f.mes)} • vence em ${dia(f.venc)}<br><b>${brl(f.valor)}</b></p><p class="sm">Faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p><label for="cf">📎 Foto do comprovante</label><input id="cf" type="file" accept="image/*"><img id="cp" class="comp hide" alt="Pré-visualização do comprovante">`,()=>{
+      if(!img)return"Anexe a foto do comprovante para enviar.";
+      const ant=f.comp;f.comp={st:"pend",img,env:hojeISO()};
+      if(!save(true)){f.comp=ant;return"A foto não coube no armazenamento. Tente uma imagem menor."}
+      aviso="Comprovante enviado! Assim que a diretoria conferir, a mensalidade será baixada.";draw();
+    },"Enviar comprovante");
+    $("#cf").onchange=e=>{const fl=e.target.files[0];img=null;$("#cp").classList.add("hide");$("#de").textContent="";if(!fl)return;
+      if(!fl.type.startsWith("image/")){$("#de").textContent="Escolha uma imagem (foto ou print do comprovante).";return}
+      comprimir(fl,d=>{if(!d){$("#de").textContent="Não foi possível ler essa imagem.";return}img=d;$("#cp").src=d;$("#cp").classList.remove("hide")})};
+    return;
+  }
+  else if(a==="anew"){const p=proximaMat();return dlg(formAluno(null,p.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const q=proximaMat(),id=uid();db.seq[q.ano]=q.n;db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:q.mat,nasc:""});["2026-11"].forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false}));aviso=`Aluno cadastrado! A matrícula ${q.mat} é o login e a senha de ${v.resp} no app.`;save();draw()},"Cadastrar")}
+  else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x,x.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";Object.assign(x,v);save();draw()})}
   else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? Mensalidades e boletim também serão removidos.`))return;db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);delete db.bol[i]}
   save();draw();
 };
