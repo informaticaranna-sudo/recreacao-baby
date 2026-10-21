@@ -1,0 +1,28 @@
+{
+  "id": "/recreacao-baby/",
+  "name": "Recreação Baby — Escola Infantil",
+  "short_name": "Recreação Baby",
+  "description": "Acompanhe a agenda, o boletim pedagógico e as mensalidades da Recreação Baby.",
+  "lang": "pt-BR",
+  "start_url": "/recreacao-baby/",
+  "scope": "/recreacao-baby/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF7E8",
+  "theme_color": "#FFD66B",
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/recreacao-baby/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/recreacao-baby/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
