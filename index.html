@@ -18,158 +18,38 @@ button{cursor:pointer}
 .hide{display:none!important}
 .grad{background:linear-gradient(135deg,#fff3c9,#fff4e6 45%,#ffe3e6)}
 /* login */
-#login{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-.l-left{padding:24px;display:flex;flex-direction:column;justify-content:space-between;gap:40px}
-.l-left h1{font-size:2.6rem;line-height:1.15;font-weight:700;max-width:480px}
-.l-left p{color:var(--mute);max-width:440px;font-size:1.05rem}
-.l-right{display:grid;place-items:center;padding:24px;align-content:center;gap:16px}
-.box{width:100%;max-width:450px;background:#fff;border:1px solid var(--line);border-radius:30px;padding:20px 16px;box-shadow:0 12px 40px #e05a4712}
-.box h2{font-size:1.5rem}
-.sm{color:var(--mute);font-size:.92rem}
-.logo{display:flex;align-items:center;gap:12px}
-.logo i{width:48px;height:48px;border-radius:50%;background:var(--coral);color:#fff;display:grid;place-items:center;font-style:normal;font-size:1.5rem;flex:none}
-.logo b{display:block;font-family:Poppins;font-size:1.1rem;line-height:1.15}
-.logo small{color:var(--or);font-weight:700;font-size:.72rem;letter-spacing:.1em;text-transform:uppercase}
-label{display:block;font-weight:500;margin:12px 0 4px}
-input,select,textarea{width:100%;padding:11px 16px;border:1px solid var(--line);border-radius:999px;background:#fff}
-textarea{border-radius:18px;min-height:90px;resize:vertical}
-#mat{text-align:center;letter-spacing:.12em}
-.pri{background:var(--coral);color:#fff;border:0;border-radius:999px;padding:10px 20px;font-weight:700}
-.pri:hover{background:var(--coral2)}
-.pri.w{width:100%;margin-top:16px}
-.ghost{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:500}
-.err{color:var(--pinkT);min-height:1.3em;margin:8px 0 0;font-size:.9rem}
-.qk{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--cream);border:1px solid #fbefb8;border-radius:22px;padding:12px 14px;margin-top:8px}
-.qk b{display:block}.qk small{color:var(--mute)}.qk code{color:#b04a00;font-weight:700}
-/* app */
-header{display:flex;align-items:center;gap:10px;padding:8px 16px;background:#fffffff0;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;backdrop-filter:blur(8px)}
-nav{display:flex;gap:2px;overflow-x:auto;flex:1;scrollbar-width:none}
-nav button{background:none;border:0;border-radius:999px;padding:9px 14px;font-weight:500;white-space:nowrap;color:#3a332d}
-nav button.on{background:#ffe9e5;color:var(--coral);font-weight:700}
-.pill{border:1px solid var(--line);background:var(--cream);border-radius:999px;padding:5px 14px;white-space:nowrap;font-size:.9rem}
-.badge{background:#ffeab5;color:#b04a00;border-radius:999px;padding:1px 10px;font-size:.78rem;margin-left:6px}
-main{max-width:1180px;margin:0 auto;padding:22px 16px 60px;display:grid;gap:20px}
-.hello{border:1px solid #fbefb8;border-radius:30px;padding:30px 32px}
-.hello small{color:var(--or);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:.8rem}
-.hello h1{font-size:2.1rem;margin:6px 0}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
-.st{border-radius:28px;padding:20px}
-.st .e{font-size:1.7rem}.st b{display:block;font-family:Poppins;font-size:1.5rem;margin-top:4px}
-.st span{font-weight:700;font-size:.78rem;letter-spacing:.07em;text-transform:uppercase}
-.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
-.card{background:#fff;border:1px solid var(--line);border-radius:30px;padding:20px 22px}
-.card h2{font-size:1.2rem}
-.hd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.lk{background:none;border:0;font-weight:500;padding:0}
-.item{display:flex;gap:12px;align-items:center;background:var(--cream);border:1px solid #fbefb8;border-radius:22px;padding:10px 16px;margin-top:10px}
-.item .ic{font-size:1.4rem}.item>div{flex:1}.item small{color:var(--mute)}
-.item.past{opacity:.55}
-.x{background:none;border:0;color:var(--pinkT);font-size:1.05rem}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.sc{overflow-x:auto}
-table{width:100%;border-collapse:collapse;min-width:520px}
-th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
-th{font-size:.8rem;color:var(--mute);font-weight:700}
-.tg{border-radius:999px;padding:2px 12px;font-size:.8rem;font-weight:700;display:inline-block}
-.t-ok{background:var(--green);color:var(--greenT)}.t-op{background:var(--yel);color:var(--yelT)}.t-late{background:var(--pink);color:var(--pinkT)}
-.area{display:grid;grid-template-columns:1fr 200px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-.chips span{background:var(--blue);color:var(--blueT);border-radius:999px;padding:2px 10px;font-size:.82rem}
-dialog{border:1px solid var(--line);border-radius:26px;max-width:440px;width:92%;color:var(--ink)}
-dialog::backdrop{background:#0006}
-.empty{color:var(--mute);margin:6px 0}
-@media(max-width:820px){#login{grid-template-columns:1fr}.l-left{min-height:340px}.l-left h1{font-size:2rem}.hello{padding:22px}.area{grid-template-columns:1fr}}
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-</style>
-  <!-- 1) Cole dentro de <head> no seu index.html, antes de </head> -->
-<link rel="manifest" href="/recreacao-baby/manifest.webmanifest">
-<meta name="theme-color" content="#FFD66B">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="/recreacao-baby/icons/icon-192.png">
-</head>
-<body>
-
-<section id="login">
-  <div class="l-left grad">
-    <div class="logo"><i>☺</i><div><b>Recreação Baby</b><small>Escola infantil</small></div></div>
-    <div><h1>Onde a infância floresce com carinho 💛</h1>
-    <p>Acompanhe a agenda do seu pequeno, o boletim pedagógico e as mensalidades em um só lugar — com todo o cuidado da nossa equipe.</p>
-    <p style="font-size:2rem;margin:14px 0 0">🧸 🎈 ✨</p></div>
-  </div>
-  <div class="l-right">
-    <div class="box">
-      <h2>Entrar no app</h2>
-      <p class="sm">Responsáveis usam a <b>matrícula do aluno</b>; a diretoria usa o código da escola. Nada de senhas complicadas. 💛</p>
-      <label for="mat">🔑 Matrícula de acesso</label>
-      <input id="mat" placeholder="EX.: 2026-0001" autocomplete="off">
-      <p class="err" id="err" role="alert"></p>
-      <button class="pri w" id="go" style="margin-top:4px">Entrar</button>
-      <p class="sm" style="background:#ffe1e6;color:#b0245a;border-radius:12px;padding:10px">Aviso: este site é um protótipo com acessos demonstrativos e dados no navegador. Não use para pagamentos reais antes de configurar autenticação e armazenamento privados no servidor.</p>
-      <p class="sm" style="font-weight:700;margin:18px 0 0;letter-spacing:.05em">✨ ACESSO RÁPIDO (DEMONSTRAÇÃO)</p>
-      <button class="qk" data-q="DIR-2026"><span>🏫 <b style="display:inline;margin-left:6px">Diretoria</b><small style="display:block;margin-left:34px">Acesso completo à escola</small></span><code>DIR-2026</code></button>
-      <button class="qk" data-q="2026-0001"><span>👩‍👧 <b style="display:inline;margin-left:6px">Ana Souza</b><small style="display:block;margin-left:34px">Responsável de Alice e Lucas</small></span><code>2026-0001</code></button>
-    </div>
-    <p class="sm">Recreação Baby • Educação Infantil desde 2015</p>
-  </div>
-</section>
-
-<div id="app" class="hide">
-  <header>
-    <div class="logo"><i style="width:36px;height:36px;font-size:1.1rem">☺</i><div><b style="font-size:.95rem">Recreação Baby</b></div></div>
-    <nav id="nav"></nav>
-    <span class="pill" id="who"></span>
-    <button class="ghost" id="demo" title="Restaurar os dados de demonstração">🪄 Demo</button>
-    <button class="ghost" id="out" aria-label="Sair">⎋</button>
-  </header>
-  <main id="pg"></main>
-</div>
-<dialog id="dlg"><form method="dialog" id="fm"></form></dialog>
-
-<script>
-const $=s=>document.querySelector(s),K="recreacaoBaby.v1";
-const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const uid=()=>Math.random().toString(36).slice(2,9);
-const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
-const TURMAS=["Berçário","Maternal I","Maternal II","Jardim I"];
-const VAL={"Berçário":1450,"Maternal I":1350,"Maternal II":1300,"Jardim I":1250};
-const AREAS=["Linguagem","Noções de matemática","Socioemocional","Coordenação motora","Artes e música"];
-const CONC=["Em início","Em desenvolvimento","Desenvolvido"];
-const ICONES=["🍎","🧩","🌙","🎨","🎂","📢","🎵","🌳"];
-const dia=d=>d.split("-").reverse().join("/");
-const hojeISO=()=>new Date().toISOString().slice(0,10);
-const mesNome=m=>["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+m.slice(5,7)-1]+"/"+m.slice(0,4);
-
-function seed(){
-  const A=[["Alice Souza","Maternal I","Ana Souza"],["Lucas Souza","Berçário","Ana Souza"],["Helena Costa","Maternal II","Paula Costa"],["Miguel Lima","Jardim I","Rafael Lima"],["Sofia Alves","Maternal I","Carla Alves"],["Theo Ramos","Berçário","Juliana Ramos"],["Laura Pires","Maternal II","Bruno Pires"]]
-   .map((a,i)=>({id:"a"+i,nome:a[0],turma:a[1],resp:a[2],mat:"2026-000"+(i+1),nasc:""}));
-  const fin=[];
-  A.forEach((a,i)=>["2026-09","2026-10","2026-11"].forEach(m=>fin.push({id:uid(),aluno:a.id,mes:m,valor:VAL[a.turma],venc:m+"-10",pago:m<"2026-11"&&!(i===3&&m==="2026-10")})));
-  return{alunos:A,fin,bol:{},comprovantes:[],
-   posts:[{id:uid(),data:"2026-10-03",titulo:"Almoço de hoje",turma:"Geral",ic:"🍎",txt:"Arroz, feijão, frango desfiado e legumes. Sobremesa: frutas da estação."},{id:uid(),data:"2026-10-03",titulo:"Manhã cheia de arte",turma:"Maternal I",ic:"🧩",txt:"Pintura com os dedos e muita criatividade."},{id:uid(),data:"2026-10-02",titulo:"Soneca em dobro",turma:"Berçário",ic:"🌙",txt:"Hoje a turma dormiu mais cedo e acordou animada."}],
-   eventos:[{id:uid(),data:"2026-10-30",titulo:"Festa da Família",turma:"Geral",txt:"Brincadeiras e lanche coletivo no pátio."},{id:uid(),data:"2026-11-12",titulo:"Reunião de pais",turma:"Geral",txt:"Entrega do boletim do 3º bimestre."}]};
-}
-function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos){if(!Array.isArray(d.comprovantes))d.comprovantes=[];return d}}catch(e){}return seed()}
-let db=load(),U=null,pg="inicio",selAl=null;
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(db))}catch(e){}};
-const dir=()=>U.role==="dir";
-const meus=()=>dir()?db.alunos:db.alunos.filter(a=>a.resp===U.nome);
-const aluno=id=>db.alunos.find(a=>a.id===id);
-const visivel=p=>dir()||p.turma==="Geral"||meus().some(a=>a.turma===p.turma);
-const status=f=>f.pago?["Pago","t-ok"]:f.venc<hojeISO()?["Atrasado","t-late"]:["Em aberto","t-op"];
-
-/* login */
-function entrar(m){
+let modo="resp";
+const msg=(t,ok)=>{const e=$("#err");e.textContent=t;e.style.color=ok?"var(--greenT)":""};
+function setModo(m){modo=m;$("#p-resp").classList.toggle("hide",m!=="resp");$("#p-dir").classList.toggle("hide",m!=="dir");document.querySelectorAll("[data-md]").forEach(b=>b.classList.toggle("on",b.dataset.md===m));msg("")}
+function abrir(u){U=u;msg("");$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0)}
+function entrarResp(m){
   m=m.trim().toUpperCase();
-  if(m==="DIR-2026")U={role:"dir",nome:"Tia Rosa — Direção"};
-  else{const a=db.alunos.find(a=>a.mat.toUpperCase()===m);if(!a){$("#err").textContent="Matrícula não encontrada. Confira o número e tente de novo.";return}U={role:"resp",nome:a.resp}}
-  $("#err").textContent="";$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0);
+  const a=db.alunos.find(a=>a.mat.toUpperCase()===m);
+  if(!a){msg("Matrícula não encontrada. Confira o número e tente de novo.");return}
+  abrir({role:"resp",nome:a.resp});
 }
-$("#go").onclick=()=>entrar($("#mat").value);
-$("#mat").onkeydown=e=>{if(e.key==="Enter")entrar(e.target.value)};
-document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>entrar(b.dataset.q));
-$("#out").onclick=()=>{U=null;$("#app").classList.add("hide");$("#login").classList.remove("hide")};
-$("#demo").onclick=()=>{if(confirm("Restaurar os dados de demonstração? Tudo que foi alterado será perdido.")){db=seed();save();draw()}};
+function entrarDir(email,senha){
+  const d=db.dirs.find(x=>x.email===email.trim().toLowerCase()&&x.senha===senha);
+  if(!d){msg(db.dirs.length?"E-mail ou senha incorretos.":"Nenhuma direção cadastrada ainda. Use o botão “Cadastrar direção”.");return}
+  abrir({role:"dir",nome:d.nome});
+}
+document.querySelectorAll("[data-md]").forEach(b=>b.onclick=()=>setModo(b.dataset.md));
+$("#go").onclick=()=>modo==="resp"?entrarResp($("#mat").value):entrarDir($("#dem").value,$("#dsn").value);
+["#mat","#dem","#dsn"].forEach(q=>$(q).onkeydown=e=>{if(e.key==="Enter")$("#go").click()});
+$("#out").onclick=()=>{U=null;["#mat","#dem","#dsn"].forEach(q=>$(q).value="");msg("");$("#app").classList.add("hide");$("#login").classList.remove("hide")};
+$("#cdir").onclick=()=>{
+  const ja=db.dirs.length>0;
+  dlg('<h2>Cadastrar direção</h2><label>Nome</label><input name="nome"><label>E-mail (será o login)</label><input name="email" type="email"><label>Senha (mín. 6 caracteres)</label><input name="senha" type="password" autocomplete="new-password"><label>Confirmar senha</label><input name="senha2" type="password" autocomplete="new-password">'+(ja?'<p class="sm" style="margin:14px 0 0"><b>Autorização:</b> informe o e-mail e a senha de uma direção já cadastrada.</p><label>E-mail da direção cadastrada</label><input name="aemail" type="email"><label>Senha dela</label><input name="asenha" type="password" autocomplete="off">':''),v=>{
+    const em=v.email.toLowerCase();
+    if(!v.nome||!em.includes("@"))return"Informe o nome e um e-mail válido.";
+    if(v.senha.length<6)return"A senha precisa ter pelo menos 6 caracteres.";
+    if(v.senha!==v.senha2)return"As senhas não conferem.";
+    if(db.dirs.some(d=>d.email===em))return"Já existe uma direção com este e-mail.";
+    if(ja&&!db.dirs.some(d=>d.email===(v.aemail||"").toLowerCase()&&d.senha===v.asenha))return"Autorização inválida: e-mail ou senha da direção cadastrada incorretos.";
+    db.dirs.push({id:uid(),nome:v.nome,email:em,senha:v.senha});save();
+    setModo("dir");$("#dem").value=em;$("#dsn").value="";msg("Direção cadastrada. Entre com seu e-mail e senha.",true);
+  });
+};
 
 function dlg(html,ok){
   $("#fm").innerHTML=html+'<p class="err" id="de"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="ghost" id="dx">Cancelar</button><button type="button" class="pri" id="dk">Salvar</button></div>';
@@ -228,16 +108,12 @@ function comprovantes(){
   const alunoOptions=meus().map(a=>`<option value="${a.id}">${esc(a.nome)} — ${esc(a.turma)}</option>`).join("");
   const form=!dir()?`<section class="card">
     <div class="hd"><h2>📤 Enviar comprovante</h2><span class="tg t-op">Mensalidade</span></div>
-    <div style="background:#fff0c4;color:#7a3a00;padding:12px 14px;border-radius:16px;margin-bottom:12px">
-      <b>Protótipo de demonstração</b><br>
-      Este arquivo ainda não envia comprovantes para um servidor seguro. Não use documentos ou dados reais nesta versão. O arquivo selecionado não é armazenado; somente o nome e os dados do formulário ficam neste navegador.
-    </div>
     <label for="c-aluno">Criança</label><select id="c-aluno">${alunoOptions}</select>
     <div class="row"><div><label for="c-mes">Mês de referência</label><input id="c-mes" type="month" value="${hojeISO().slice(0,7)}"></div>
     <div><label for="c-valor">Valor pago (R$)</label><input id="c-valor" inputmode="decimal" placeholder="350,00"></div></div>
     <label for="c-data">Data do pagamento</label><input id="c-data" type="date" value="${hojeISO()}">
     <label for="c-arquivo">Comprovante (PDF, JPG ou PNG; até 5 MB)</label><input id="c-arquivo" type="file" accept=".pdf,image/jpeg,image/png">
-    <button class="pri" data-a="csubmit">Registrar envio de demonstração</button>
+    <button class="pri" data-a="csubmit">Enviar comprovante</button>
   </section>`:"";
   const rows=C.map(c=>{
     const a=aluno(c.aluno),statusLabel=c.status==="confirmed"?"Confirmado":c.status==="rejected"?"Recusado":"Aguardando análise";
@@ -250,9 +126,8 @@ function comprovantes(){
       ${c.revisadoEm?`<small>Revisado em ${dia(c.revisadoEm)} por ${esc(c.revisadoPor||"Diretoria")}</small>`:""}
       </div>${dir()&&c.status==="pending"?`<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="pri" data-a="cconfirm" data-i="${c.id}">Confirmar</button><button class="ghost" data-a="creject" data-i="${c.id}">Recusar</button></div>`:""}</div>`;
   }).join("");
-  const whats=dir()?`<section class="card"><h2>💬 Aviso pelo WhatsApp</h2><p class="sm">Protótipo: informe o telefone do responsável com código do país (ex.: 5521999999999). O botão abre uma mensagem preparada; você ainda precisará enviá-la no WhatsApp.</p><label for="c-tel">Telefone do responsável</label><input id="c-tel" inputmode="tel" placeholder="5521999999999"><label for="c-msg">Mensagem</label><textarea id="c-msg">Olá! A diretoria da Recreação Baby atualizou o status do comprovante de mensalidade. Entre na sua área do responsável para consultar.</textarea><button class="ghost" data-a="cwa">Abrir WhatsApp</button></section>`:"";
+  const whats=dir()?`<section class="card"><h2>💬 Aviso pelo WhatsApp</h2><p class="sm">Informe o telefone do responsável com código do país (ex.: 5521999999999). O botão abre uma mensagem pronta no WhatsApp; basta enviá-la.</p><label for="c-tel">Telefone do responsável</label><input id="c-tel" inputmode="tel" placeholder="5521999999999"><label for="c-msg">Mensagem</label><textarea id="c-msg">Olá! A diretoria da Recreação Baby atualizou o status do comprovante de mensalidade. Entre na sua área do responsável para consultar.</textarea><button class="ghost" data-a="cwa">Abrir WhatsApp</button></section>`:"";
   return `${form}<section class="card"><div class="hd"><h2>🧾 ${dir()?"Comprovantes recebidos":"Meus comprovantes"}</h2>${dir()?`<span class="tg t-op">${C.filter(c=>c.status==="pending").length} pendente(s)</span>`:""}</div>
-  <div style="background:#ffe1e6;color:#b0245a;padding:12px 14px;border-radius:16px;margin-bottom:12px"><b>Atenção:</b> esta tela é somente uma demonstração local. Os registros ficam no armazenamento deste navegador e não são compartilhados entre dispositivos. A confirmação aqui não comprova recebimento bancário.</div>
   ${rows||empty("Nenhum comprovante registrado.")}</section>${whats}`;
 }
 function alunos(){
@@ -264,6 +139,16 @@ function painel(){
 }
 
 /* ações */
+/* matrícula: ANO-NÚMERO (ex.: 2026-0001). O contador nunca volta atrás, então o número de um aluno excluído não é reaproveitado. */
+function proximaMat(){
+  const ano=String(new Date().getFullYear());
+  db.seq=db.seq||{};
+  const maior=Math.max(0,...db.alunos.filter(x=>x.mat.startsWith(ano+"-")).map(x=>parseInt(x.mat.slice(5),10)||0));
+  const n=Math.max(db.seq[ano]||0,maior)+1;
+  db.seq[ano]=n;
+  return ano+"-"+String(n).padStart(4,"0");
+}
+function proxMes(){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+1);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")}
 function formAluno(a){
   return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label>Turma</label><select name="turma">${TURMAS.map(t=>`<option ${t===a?.turma?"selected":""}>${t}</option>`).join("")}</select><label>Responsável</label><input name="resp" value="${esc(a?.resp)}">`;
 }
@@ -284,7 +169,7 @@ $("#pg").onclick=e=>{
     if(!Number.isFinite(valor)||valor<=0){alert("Informe um valor válido.");return}
     db.comprovantes=db.comprovantes||[];
     db.comprovantes.push({id:uid(),aluno:alunoId,mes,valor,enviado:data,arquivo:file.name,status:"pending",motivo:"",revisadoEm:"",revisadoPor:""});
-    save();draw();alert("Registro de demonstração criado. O arquivo NÃO foi enviado nem armazenado.");
+    save();draw();alert("Comprovante registrado. Aguarde a análise da diretoria.");
     return;
   }
   else if(a==="cconfirm"){
@@ -306,9 +191,16 @@ $("#pg").onclick=e=>{
     return;
   }
   else if(a==="pay"){const f=db.fin.find(f=>f.id===i);f.pago=!f.pago}
-  else if(a==="anew")return dlg(formAluno(),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const n=db.alunos.length+1,id=uid(),m="2026-"+String(Math.max(n,...db.alunos.map(x=>+x.mat.slice(5)+1))).padStart(4,"0");db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:m,nasc:""});["2026-11"].forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false}));save();draw()});
+  else if(a==="anew")return dlg(formAluno(),v=>{
+    if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";
+    const id=uid(),m=proximaMat(),ms=proxMes();
+    db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:m,nasc:""});
+    db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false});
+    save();draw();
+    alert(`Aluno cadastrado!\n\nMatrícula: ${m}\n\nEla é o login e a senha do responsável para entrar no sistema.`);
+  });
   else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";Object.assign(x,v);save();draw()})}
-  else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? Mensalidades e boletim também serão removidos.`))return;db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);delete db.bol[i]}
+  else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? A matrícula (login e senha do responsável), as mensalidades, o boletim e os comprovantes também serão removidos.`))return;db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);db.comprovantes=(db.comprovantes||[]).filter(c=>c.aluno!==i);delete db.bol[i]}
   save();draw();
 };
 $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
