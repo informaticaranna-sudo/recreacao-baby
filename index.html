@@ -167,7 +167,7 @@ let fs,last={},gate=new Set();
 $("#go").disabled=$("#newdir").disabled=true;$("#go").textContent="Conectando…";
 function libera(){pronto=true;$("#go").disabled=$("#newdir").disabled=false;$("#go").textContent="Entrar"}
 function ouvir(c){
-  onSnapshot(collection(fs,c),s=>{
+  onSnapshot(collection(fs,c),{includeMetadataChanges:true},s=>{
     const docs=s.docs.map(d=>({...d.data(),id:d.id}));
     if(c==="bol")db.bol=Object.fromEntries(docs.map(d=>[d.id,d]));
     else{db[c]=merge(db[c],docs);if(c==="alunos")db.alunos.sort((a,b)=>a.mat.localeCompare(b.mat))}
@@ -196,6 +196,7 @@ else{
   fs=initializeFirestore(fbApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
   try{await signInAnonymously(getAuth(fbApp))}catch(e){console.warn("auth",e)}
   COLS.forEach(ouvir);
+  setTimeout(()=>{if(!pronto){libera();$("#err").textContent="Sem resposta do servidor. Confira a internet e se o Firestore foi criado no console do Firebase."}},6000);
   onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro);
 }
 const avisoHTML=()=>{const t=aviso;aviso="";return t?`<div class="flash" role="status">${esc(t)}</div>`:""};
