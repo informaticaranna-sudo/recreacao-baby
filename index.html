@@ -162,7 +162,7 @@ const rows=c=>c==="bol"?Object.entries(db.bol).map(([id,v])=>({...v,id})):db[c];
 const clean=x=>JSON.parse(JSON.stringify(x));
 const sj=x=>JSON.stringify(x,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:1)):v);
 const merge=(arr,docs)=>{const m=new Map(arr.map(x=>[x.id,x]));return docs.map(d=>{const o=m.get(d.id);if(!o)return d;Object.keys(o).forEach(k=>delete o[k]);return Object.assign(o,d)})};
-const erro=e=>{console.error(e);const m="Falha ao sincronizar com o banco de dados ("+(e.code||e.message)+").";U?alert(m):$("#err").textContent=m};
+const erro=e=>{console.error(e);const m="Falha ao sincronizar com o banco de dados ("+(e.code||e.message)+").";U?alert(m):/^Login/.test($("#err").textContent)||($("#err").textContent=m)};
 let fs,last={},gate=new Set();
 $("#go").disabled=$("#newdir").disabled=true;$("#go").textContent="Conectando…";
 function libera(){pronto=true;$("#go").disabled=$("#newdir").disabled=false;$("#go").textContent="Entrar"}
@@ -194,10 +194,9 @@ if(/COLE_AQUI/.test(firebaseConfig.apiKey))$("#err").textContent="Falta configur
 else{
   const fbApp=initializeApp(firebaseConfig);
   fs=initializeFirestore(fbApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
-  try{await signInAnonymously(getAuth(fbApp))}catch(e){console.warn("auth",e)}
-  COLS.forEach(ouvir);
-  setTimeout(()=>{if(!pronto){libera();$("#err").textContent="Sem resposta do servidor. Confira a internet e se o Firestore foi criado no console do Firebase."}},6000);
-  onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro);
+  setTimeout(()=>{if(!pronto){libera();if(!$("#err").textContent)$("#err").textContent="Sem resposta do servidor. Confira a internet e se o Firestore foi criado no console do Firebase."}},6000);
+  const iniciar=()=>{COLS.forEach(ouvir);onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro)};
+  signInAnonymously(getAuth(fbApp)).catch(e=>{console.error(e);$("#err").textContent="Login anônimo falhou ("+(e.code||e.message)+"). Ative \"Anônimo\" em Authentication > Sign-in method."}).finally(iniciar);
 }
 const avisoHTML=()=>{const t=aviso;aviso="";return t?`<div class="flash" role="status">${esc(t)}</div>`:""};
 const pendentes=()=>dir()?db.fin.filter(f=>f.comp?.st==="pend").length:0;
@@ -305,10 +304,10 @@ function financeiro(){
     if(c?.st==="pend")return`<span class="sm">Enviado em ${dia(c.env)}</span>`;
     return`<button class="pri s" data-a="pagar" data-i="${f.id}">💳 ${c?.st==="rej"?"Reenviar comprovante":"Pagar"}</button>`;
   };
-  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div>${avisoHTML()}${dir()?"":`<p class="sm">Para pagar, toque em <b>Pagar</b>, faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p>`}<div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr>${F.map(f=>{const s=status(f),c=f.comp;return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span>${c?.st==="rej"&&!f.pago?`<div class="sm">Comprovante recusado${c.motivo?": "+esc(c.motivo):""}${dir()?"":". Envie outro."}</div>`:""}</td><td>${acao(f)}</td></tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
+  return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div>${avisoHTML()}${resumoMensal()}${dir()?"":`<p class="sm">Para pagar, toque em <b>Pagar</b>, faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p>`}<div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr>${F.map(f=>{const s=status(f),c=f.comp;return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span>${c?.st==="rej"&&!f.pago?`<div class="sm">Comprovante recusado${c.motivo?": "+esc(c.motivo):""}${dir()?"":". Envie outro."}</div>`:""}</td><td>${acao(f)}</td></tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
 }
 function alunos(){
-  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div>${avisoHTML()}<div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Responsável</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.resp)}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
+  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div>${avisoHTML()}<div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Nascimento</th><th>Responsável</th><th>Telefone</th><th>Mensalidade</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${a.nasc?dia(a.nasc):"—"}</td><td>${esc(a.resp)}</td><td>${esc(a.tel)||"—"}</td><td>${brl(mensalDe(a))}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
 }
 function painel(){
   return`<div class="two">${TURMAS.map(t=>{const A=db.alunos.filter(a=>a.turma===t),atr=db.fin.filter(f=>A.some(a=>a.id===f.aluno)&&!f.pago&&f.venc<hojeISO()).length,np=db.posts.filter(p=>p.turma===t).length;
@@ -316,8 +315,12 @@ function painel(){
 }
 
 /* ações */
+const money=t=>{t=String(t||"").trim().replace(/\s|R\$/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if(/^\d{1,3}(\.\d{3})+$/.test(t))t=t.replace(/\./g,"");const n=parseFloat(t);return isFinite(n)?Math.round(n*100)/100:NaN};
+const mensalDe=a=>a.mensal||VAL[a.turma]||0;
+const mesesDe=()=>{const h=new Date();let a=h.getFullYear(),m=h.getMonth()+1+(h.getDate()>10?1:0);if(m>12){m=1;a++}const L=[];for(;m<=12;m++)L.push(a+"-"+String(m).padStart(2,"0"));return L};
+const resumoMensal=()=>{const M=meus();if(!M.length)return"";const tot=M.reduce((s,a)=>s+mensalDe(a),0);return`<div class="item" style="flex-wrap:wrap"><span class="ic">💛</span><div><b>${dir()?"Total de mensalidades por mês":"Mensalidade"}: ${brl(tot)}</b><div class="chips">${M.map(a=>`<span style="background:var(--yel);color:var(--yelT)">${esc(a.nome)} — ${brl(mensalDe(a))}</span>`).join("")}</div></div></div>`};
 function formAluno(a,mat){
-  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label>Turma</label><select name="turma">${TURMAS.map(t=>`<option ${t===a?.turma?"selected":""}>${t}</option>`).join("")}</select><label>Responsável</label><input name="resp" value="${esc(a?.resp)}"><label for="mt">Matrícula</label><input id="mt" value="${esc(a?a.mat:mat)}" readonly style="background:var(--cream);text-align:center;letter-spacing:.12em"><p class="sm">${a?"A matrícula não pode ser alterada.":"Gerada automaticamente (ano-número). Será o login e a senha do responsável."}</p>`;
+  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label for="nc">Data de nascimento</label><input id="nc" name="nasc" type="date" value="${esc(a?.nasc)}"><label>Turma</label><select name="turma">${TURMAS.map(t=>`<option ${t===a?.turma?"selected":""}>${t}</option>`).join("")}</select><label for="mae">Nome da mãe</label><input id="mae" name="mae" autocomplete="off" value="${esc(a?.mae)}"><label for="pai">Nome do pai</label><input id="pai" name="pai" autocomplete="off" value="${esc(a?.pai)}"><label for="rs">Responsável (usuário no app)</label><input id="rs" name="resp" value="${esc(a?.resp)}"><label for="mv">Valor da mensalidade (R$)</label><input id="mv" name="mensal" inputmode="decimal" ${a?"":'data-auto="1"'} value="${(a?mensalDe(a):VAL[TURMAS[0]]).toFixed(2).replace(".",",")}"><label for="tl">Telefone de contato</label><input id="tl" name="tel" type="tel" inputmode="tel" placeholder="(21) 99999-9999" value="${esc(a?.tel)}"><label for="en">Endereço</label><input id="en" name="end" autocomplete="off" placeholder="Rua, número, bairro, cidade" value="${esc(a?.end)}"><label for="ob2">Observações</label><textarea id="ob2" name="obs" style="min-height:70px" placeholder="Alergias, restrições, autorizados a buscar, etc.">${esc(a?.obs)}</textarea><label for="mt">Matrícula</label><input id="mt" value="${esc(a?a.mat:mat)}" readonly style="background:var(--cream);text-align:center;letter-spacing:.12em"><p class="sm">${a?"A matrícula não pode ser alterada.":"Gerada automaticamente (ano-número). Será o login e a senha do responsável."}</p>`;
 }
 function proximaMat(){
   const ano=String(new Date().getFullYear());
@@ -364,11 +367,14 @@ $("#pg").onclick=e=>{
       comprimir(fl,d=>{if(!d){$("#de").textContent="Não foi possível ler essa imagem.";return}img=d;$("#cp").src=d;$("#cp").classList.remove("hide")})};
     return;
   }
-  else if(a==="anew"){const p=proximaMat();return dlg(formAluno(null,p.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const q=proximaMat(),id=uid();db.seq[q.ano]=q.n;db.alunos.push({id,nome:v.nome,turma:v.turma,resp:v.resp,mat:q.mat,nasc:""});["2026-11"].forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:VAL[v.turma],venc:ms+"-10",pago:false}));aviso=`Aluno cadastrado! A matrícula ${q.mat} é o login e a senha de ${v.resp} no app.`;save();draw()},"Cadastrar")}
-  else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x,x.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";Object.assign(x,v);save();draw()})}
+  else if(a==="anew"){const p=proximaMat();return dlg(formAluno(null,p.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const m=money(v.mensal);if(!(m>0))return"Informe o valor da mensalidade (ex.: 1.350,00).";v.mensal=m;const q=proximaMat(),id=uid();db.seq[q.ano]=q.n;db.alunos.push({id,...v,mat:q.mat});mesesDe().forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:m,venc:ms+"-10",pago:false}));aviso=`Aluno cadastrado! A matrícula ${q.mat} é o login e a senha de ${v.resp} no app.`;save();draw()},"Cadastrar")}
+  else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x,x.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const m=money(v.mensal);if(!(m>0))return"Informe o valor da mensalidade (ex.: 1.350,00).";v.mensal=m;db.fin.filter(f=>f.aluno===x.id&&!f.pago&&f.comp?.st!=="pend").forEach(f=>f.valor=m);Object.assign(x,v);save();draw()})}
   else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? Mensalidades e boletim também serão removidos.`))return;db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);delete db.bol[i]}
   save();draw();
 };
+document.addEventListener("input",e=>{if(e.target.id!=="tl")return;const d=e.target.value.replace(/\D/g,"").slice(0,11);e.target.value=d.length>10?d.replace(/(\d{2})(\d{5})(\d{4})/,"($1) $2-$3"):d.length>6?d.replace(/(\d{2})(\d{4})(\d{0,4})/,"($1) $2-$3"):d.length>2?d.replace(/(\d{2})(\d+)/,"($1) $2"):d});
+document.addEventListener("change",e=>{if(e.target.name!=="turma")return;const m=$("#mv");if(m&&m.dataset.auto)m.value=(VAL[e.target.value]||0).toFixed(2).replace(".",",")});
+document.addEventListener("input",e=>{if(e.target.id==="mv")delete e.target.dataset.auto});
 $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
 </script>
 <script>
