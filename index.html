@@ -94,6 +94,7 @@ dialog::backdrop{background:#0006}
 .empty{color:var(--mute);margin:6px 0}
 @media(max-width:820px){#login{grid-template-columns:1fr}.l-left{min-height:340px}.l-left h1{font-size:2rem}.hello{padding:22px}.area{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+button:disabled{opacity:.6;cursor:wait}
 </style>
 </head>
 <body>
@@ -116,10 +117,8 @@ dialog::backdrop{background:#0006}
       <p class="err" id="err" role="alert"></p>
       <button class="pri w" id="go" style="margin-top:4px">Entrar</button>
       <button class="ghost w" id="newdir" type="button">🏫 Criar conta da direção</button>
-      <p class="sm" style="font-weight:700;margin:18px 0 0;letter-spacing:.05em">✨ ACESSO RÁPIDO (DEMONSTRAÇÃO)</p>
-      <button class="qk" data-q="DIR-2026"><span>🏫 <b style="display:inline;margin-left:6px">Diretoria</b><small style="display:block;margin-left:34px">Acesso completo à escola</small></span><code>DIR-2026</code></button>
-      <button class="qk" data-q="2026-0001"><span>👩‍👧 <b style="display:inline;margin-left:6px">Ana Souza</b><small style="display:block;margin-left:34px">Responsável de Alice e Lucas</small></span><code>2026-0001</code></button>
     </div>
+    <button class="pri inst hide" type="button">📲 Instalar o app</button>
     <p class="sm">Recreação Baby • Educação Infantil desde 2015</p>
   </div>
 </section>
@@ -129,15 +128,19 @@ dialog::backdrop{background:#0006}
     <div class="logo"><i style="width:36px;height:36px;font-size:1.1rem">☺</i><div><b style="font-size:.95rem">Recreação Baby</b></div></div>
     <nav id="nav"></nav>
     <span class="pill" id="who"></span>
-    <button class="ghost" id="demo" title="Restaurar os dados de demonstração">🪄 Demo</button>
+    <button class="ghost inst hide" type="button">📲 Instalar</button>
     <button class="ghost" id="out" aria-label="Sair">⎋</button>
   </header>
   <main id="pg"></main>
 </div>
 <dialog id="dlg"><form method="dialog" id="fm"></form></dialog>
 
-<script>
-const $=s=>document.querySelector(s),K="recreacaoBaby.v1";
+<script type="module">
+import {firebaseConfig} from "./firebase-config.js";
+import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9);
 const brl=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
@@ -150,19 +153,51 @@ const dia=d=>d.split("-").reverse().join("/");
 const hojeISO=()=>new Date().toISOString().slice(0,10);
 const mesNome=m=>["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+m.slice(5,7)-1]+"/"+m.slice(0,4);
 
-const seedDir=()=>[{id:"d0",nome:"Tia Rosa",user:"DIR-2026",senha:"DIR-2026"}];
-function seed(){
-  const A=[["Alice Souza","Maternal I","Ana Souza"],["Lucas Souza","Berçário","Ana Souza"],["Helena Costa","Maternal II","Paula Costa"],["Miguel Lima","Jardim I","Rafael Lima"],["Sofia Alves","Maternal I","Carla Alves"],["Theo Ramos","Berçário","Juliana Ramos"],["Laura Pires","Maternal II","Bruno Pires"]]
-   .map((a,i)=>({id:"a"+i,nome:a[0],turma:a[1],resp:a[2],mat:"2026-000"+(i+1),nasc:""}));
-  const fin=[];
-  A.forEach((a,i)=>["2026-09","2026-10","2026-11"].forEach(m=>fin.push({id:uid(),aluno:a.id,mes:m,valor:VAL[a.turma],venc:m+"-10",pago:m<"2026-11"&&!(i===3&&m==="2026-10")})));
-  return{alunos:A,fin,bol:{},dir:seedDir(),seq:{},
-   posts:[{id:uid(),data:"2026-10-03",titulo:"Almoço de hoje",turma:"Geral",ic:"🍎",txt:"Arroz, feijão, frango desfiado e legumes. Sobremesa: frutas da estação."},{id:uid(),data:"2026-10-03",titulo:"Manhã cheia de arte",turma:"Maternal I",ic:"🧩",txt:"Pintura com os dedos e muita criatividade."},{id:uid(),data:"2026-10-02",titulo:"Soneca em dobro",turma:"Berçário",ic:"🌙",txt:"Hoje a turma dormiu mais cedo e acordou animada."}],
-   eventos:[{id:uid(),data:"2026-10-30",titulo:"Festa da Família",turma:"Geral",txt:"Brincadeiras e lanche coletivo no pátio."},{id:uid(),data:"2026-11-12",titulo:"Reunião de pais",turma:"Geral",txt:"Entrega do boletim do 3º bimestre."}]};
+const sha=async(u,p)=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("rb:"+u+":"+p)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+let db={alunos:[],fin:[],bol:{},dir:[],seq:{},posts:[],eventos:[]},U=null,pg="inicio",selAl=null,aviso="",pronto=false;
+
+/* ===== Banco de dados: Firebase Firestore (coleções alunos, fin, posts, eventos, dir, bol + meta/seq) ===== */
+const COLS=["alunos","fin","posts","eventos","dir","bol"];
+const rows=c=>c==="bol"?Object.entries(db.bol).map(([id,v])=>({...v,id})):db[c];
+const clean=x=>JSON.parse(JSON.stringify(x));
+const sj=x=>JSON.stringify(x,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:1)):v);
+const merge=(arr,docs)=>{const m=new Map(arr.map(x=>[x.id,x]));return docs.map(d=>{const o=m.get(d.id);if(!o)return d;Object.keys(o).forEach(k=>delete o[k]);return Object.assign(o,d)})};
+const erro=e=>{console.error(e);const m="Falha ao sincronizar com o banco de dados ("+(e.code||e.message)+").";U?alert(m):$("#err").textContent=m};
+let fs,last={},gate=new Set();
+$("#go").disabled=$("#newdir").disabled=true;$("#go").textContent="Conectando…";
+function libera(){pronto=true;$("#go").disabled=$("#newdir").disabled=false;$("#go").textContent="Entrar"}
+function ouvir(c){
+  onSnapshot(collection(fs,c),s=>{
+    const docs=s.docs.map(d=>({...d.data(),id:d.id}));
+    if(c==="bol")db.bol=Object.fromEntries(docs.map(d=>[d.id,d]));
+    else{db[c]=merge(db[c],docs);if(c==="alunos")db.alunos.sort((a,b)=>a.mat.localeCompare(b.mat))}
+    last[c]=Object.fromEntries(rows(c).map(x=>[x.id,sj(x)]));
+    if((c==="dir"||c==="alunos")&&!(s.metadata.fromCache&&s.empty))gate.add(c);
+    if(gate.size===2&&!pronto)libera();
+    const ae=document.activeElement,digitando=ae&&ae.closest&&ae.closest("#pg")&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName);
+    if(U&&!$("#dlg").open&&!digitando)draw();
+  },erro);
 }
-function load(){try{const d=JSON.parse(localStorage.getItem(K));if(d&&d.alunos){d.dir=d.dir||seedDir();d.seq=d.seq||{};return d}}catch(e){}return seed()}
-let db=load(),U=null,pg="inicio",selAl=null,aviso="";
-const save=q=>{try{localStorage.setItem(K,JSON.stringify(db));return true}catch(e){if(!q)alert("Não foi possível salvar: o armazenamento do navegador está cheio.");return false}};
+function save(){
+  const w=[];
+  COLS.forEach(c=>{
+    const cur={},prev=last[c]||{};
+    rows(c).forEach(x=>{const j=sj(x);cur[x.id]=j;if(j!==prev[x.id])w.push(setDoc(doc(fs,c,x.id),clean(x)))});
+    for(const id in prev)if(!(id in cur))w.push(deleteDoc(doc(fs,c,id)));
+    last[c]=cur;
+  });
+  const q=sj(db.seq);if(q!==last.seq){last.seq=q;w.push(setDoc(doc(fs,"meta","seq"),clean(db.seq)))}
+  Promise.all(w).catch(erro);
+  return true;
+}
+if(/COLE_AQUI/.test(firebaseConfig.apiKey))$("#err").textContent="Falta configurar o Firebase (arquivo firebase-config.js).";
+else{
+  const fbApp=initializeApp(firebaseConfig);
+  fs=initializeFirestore(fbApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+  try{await signInAnonymously(getAuth(fbApp))}catch(e){console.warn("auth",e)}
+  COLS.forEach(ouvir);
+  onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro);
+}
 const avisoHTML=()=>{const t=aviso;aviso="";return t?`<div class="flash" role="status">${esc(t)}</div>`:""};
 const pendentes=()=>dir()?db.fin.filter(f=>f.comp?.st==="pend").length:0;
 const dir=()=>U.role==="dir";
@@ -172,10 +207,11 @@ const visivel=p=>dir()||p.turma==="Geral"||meus().some(a=>a.turma===p.turma);
 const status=f=>f.pago?["Pago","t-ok"]:f.comp?.st==="pend"?["Aguardando confirmação","t-wait"]:f.venc<hojeISO()?["Atrasado","t-late"]:["Em aberto","t-op"];
 
 /* login */
-function entrar(u,p){
+async function entrar(u,p){
+  if(!pronto)return;
   u=(u||"").trim().toUpperCase();p=(p||"").trim();
   const d=db.dir.find(x=>x.user===u),a=db.alunos.find(x=>x.mat.toUpperCase()===u);
-  if(d&&d.senha===p)U={role:"dir",nome:d.nome};
+  if(d&&d.hash===await sha(u,p))U={role:"dir",nome:d.nome};
   else if(!d&&a&&p.toUpperCase()===a.mat.toUpperCase())U={role:"resp",nome:a.resp};
   else{$("#err").textContent="Usuário ou senha incorretos. Responsáveis: use a matrícula do aluno nos dois campos.";return}
   $("#err").textContent="";$("#mat").value=$("#pw").value="";$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0);
@@ -183,7 +219,6 @@ function entrar(u,p){
 const tentar=()=>entrar($("#mat").value,$("#pw").value);
 $("#go").onclick=tentar;
 $("#mat").onkeydown=$("#pw").onkeydown=e=>{if(e.key==="Enter")tentar()};
-document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>entrar(b.dataset.q,b.dataset.q));
 $("#out").onclick=()=>{U=null;$("#mat").value=$("#pw").value="";$("#err").textContent="";$("#app").classList.add("hide");$("#login").classList.remove("hide")};
 const COD_ESCOLA="020166";
 const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa conta tem acesso completo: cadastra alunos, publica na agenda, lança o boletim e confere os pagamentos.</p>
@@ -198,7 +233,7 @@ const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa 
   if(db.dir.some(d=>d.user===u))return"Esse usuário já existe.";
   if(v.senha.length<4)return"A senha precisa ter pelo menos 4 caracteres.";
   if(v.senha!==v.senha2)return"As senhas não conferem.";
-  db.dir.push({id:uid(),nome:v.nome,user:u,senha:v.senha});save();entrar(u,v.senha);
+  sha(u,v.senha).then(h=>{db.dir.push({id:uid(),nome:v.nome,user:u,hash:h});save();entrar(u,v.senha)});
 },"Criar conta");
 $("#newdir").onclick=()=>{
   dlg(`<h2>🔒 Autorização da escola</h2><p class="sm">Para criar uma conta da direção, digite o código de autorização da escola.</p><label for="dc">Código de autorização</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="new-password" autocapitalize="off" spellcheck="false"><label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px"><input type="checkbox" id="dmost" style="width:auto"> Mostrar código</label>`,v=>{
@@ -208,7 +243,6 @@ $("#newdir").onclick=()=>{
   $("#dmost").onchange=e=>{$("#dc").type=e.target.checked?"text":"password"};
   $("#dc").focus();
 };
-$("#demo").onclick=()=>{if(confirm("Restaurar os dados de demonstração? Tudo que foi alterado será perdido.")){db=seed();save();draw()}};
 
 function dlg(html,ok,lbl){
   $("#fm").innerHTML=html+'<p class="err" id="de"></p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" class="ghost" id="dx">Cancelar</button><button type="button" class="pri" id="dk">'+(lbl||"Salvar")+'</button></div>';
@@ -338,6 +372,10 @@ $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
 </script>
 <script>
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
+let ev;const ib=f=>document.querySelectorAll(".inst").forEach(f);
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();ev=e;ib(b=>b.classList.remove("hide"))});
+ib(b=>b.onclick=async()=>{if(!ev)return;ev.prompt();await ev.userChoice;ev=null;ib(x=>x.classList.add("hide"))});
+window.addEventListener("appinstalled",()=>ib(b=>b.classList.add("hide")));
 </script>
 </body>
 </html>

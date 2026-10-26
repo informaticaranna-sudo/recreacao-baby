@@ -1,18 +1,18 @@
 {
+  "id": "./",
   "name": "Recreação Baby — Escola Infantil",
   "short_name": "Recreação Baby",
-  "description": "Portal da escola: mensalidades, boletim, agenda e comunicados.",
+  "description": "Agenda, boletim e mensalidades da escola infantil.",
   "lang": "pt-BR",
-  "start_url": "./index.html",
+  "start_url": "./",
   "scope": "./",
-  "id": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#fffdf8",
   "theme_color": "#e05a47",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
   ]
 }
