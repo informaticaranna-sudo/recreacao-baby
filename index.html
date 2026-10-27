@@ -162,16 +162,21 @@ const VAL={"Maternal I":1350,"Maternal II":1300,"Maternal III":1250,"Pré-1":125
 const TURNOS=["Manhã","Tarde","Integral"];
 const AREAS=["Linguagem","Noções de matemática","Socioemocional","Coordenação motora","Artes e música"];
 const CONC=["Em início","Em desenvolvimento","Desenvolvido"];
+/* Disciplinas padrão por turma (a diretoria pode cadastrar outras na aba Disciplinas) */
+const DISC_INF=["Português","Matemática","Natureza e Sociedade","Computação"];
+const DISC_FUND=["Português","Matemática","História","Geografia","Ciências","Artes","Inglês","Computação"];
+const DISC_PADRAO={"Maternal I":DISC_INF,"Maternal II":DISC_INF,"Maternal III":DISC_INF,"Pré-1":DISC_INF,"Pré-2":DISC_INF,"1º Ano":DISC_FUND,"2º Ano":DISC_FUND,"Reforço":[]};
+const discDe=t=>{const L=[...(DISC_PADRAO[t]||[])];db.disc.forEach(d=>{if((d.turmas||[]).includes(t)&&!L.some(n=>n.toLowerCase()===d.nome.toLowerCase()))L.push(d.nome)});return L};
 const ICONES=["🍎","🧩","🌙","🎨","🎂","📢","🎵","🌳"];
 const dia=d=>d.split("-").reverse().join("/");
 const hojeISO=()=>new Date().toISOString().slice(0,10);
 const mesNome=m=>["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][+m.slice(5,7)-1]+"/"+m.slice(0,4);
 
 const sha=async(u,p)=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("rb:"+u+":"+p)))].map(b=>b.toString(16).padStart(2,"0")).join("");
-let db={alunos:[],fin:[],bol:{},dir:[],seq:{},posts:[],eventos:[]},U=null,pg="inicio",selAl=null,aviso="",pronto=false;
+let db={alunos:[],fin:[],bol:{},dir:[],seq:{},posts:[],eventos:[],disc:[]},U=null,pg="inicio",selAl=null,aviso="",pronto=false;
 
 /* ===== Banco de dados: Firebase Firestore (coleções alunos, fin, posts, eventos, dir, bol + meta/seq) ===== */
-const COLS=["alunos","fin","posts","eventos","dir","bol"];
+const COLS=["alunos","fin","posts","eventos","dir","bol","disc"];
 const rows=c=>c==="bol"?Object.entries(db.bol).map(([id,v])=>({...v,id})):db[c];
 const clean=x=>JSON.parse(JSON.stringify(x));
 const sj=x=>JSON.stringify(x,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:1)):v);
@@ -182,7 +187,7 @@ const emailDe=m=>m.trim().toLowerCase()+"@resp.recreacaobaby.app";
 $("#go").disabled=$("#newdir").disabled=true;$("#go").textContent="Conectando…";
 function libera(){pronto=true;$("#go").disabled=$("#newdir").disabled=false;$("#go").textContent="Entrar"}
 function ouvir(c){
-  const ref=souDir||c==="posts"||c==="eventos"?collection(fs,c):query(collection(fs,c),where(c==="alunos"?"uid":"ruid","==",meuUid));
+  const ref=souDir||c==="posts"||c==="eventos"||c==="disc"?collection(fs,c):query(collection(fs,c),where(c==="alunos"?"uid":"ruid","==",meuUid));
   onSnapshot(ref,{includeMetadataChanges:true},s=>{
     const docs=s.docs.map(d=>({...d.data(),id:d.id}));
     if(c==="bol")db.bol=Object.fromEntries(docs.map(d=>[d.id,d]));
@@ -192,7 +197,7 @@ function ouvir(c){
     if(souDir&&!s.metadata.fromCache)migrar();
     const ae=document.activeElement,digitando=ae&&ae.closest&&ae.closest("#pg")&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName);
     if(U&&!$("#dlg").open&&!digitando)draw();
-  },erro);
+  },c==="disc"?e=>console.warn("Disciplinas: sem acesso à coleção disc ("+(e.code||e.message)+"). Usando só as disciplinas padrão."):erro);
 }
 async function contaResp(al){
   const sa=getAuth(getApps().find(x=>x.name==="sec")||initializeApp(firebaseConfig,"sec")),em=emailDe(al.mat);let id;
@@ -306,11 +311,11 @@ function dlg(html,ok,lbl){
 }
 
 /* layout */
-const PAGES=[["inicio","🏠 Início"],["agenda","✨ Agenda"],["calendario","🗓 Calendário"],["boletim","📖 Boletim"],["financeiro","💳 Financeiro"],["alunos","👥 Alunos & Turmas",1],["painel","🏫 Painel de Turmas",1]];
+const PAGES=[["inicio","🏠 Início"],["agenda","✨ Agenda"],["calendario","🗓 Calendário"],["boletim","📖 Boletim"],["financeiro","💳 Financeiro"],["alunos","👥 Alunos & Turmas",1],["painel","🏫 Painel de Turmas",1],["disciplinas","📚 Disciplinas",1]];
 function draw(){
   $("#who").innerHTML=esc(U.nome)+`<span class="badge">${dir()?"Diretoria":"Responsável"}</span>`;
   $("#nav").innerHTML=PAGES.filter(p=>dir()||!p[2]).map(p=>`<button class="${p[0]===pg?"on":""}" data-g="${p[0]}">${p[1]}${p[0]==="financeiro"&&pendentes()?`<span class="badge">${pendentes()}</span>`:""}</button>`).join("");
-  $("#pg").innerHTML=({inicio,agenda,calendario,boletim,financeiro,alunos,painel})[pg]();
+  $("#pg").innerHTML=({inicio,agenda,calendario,boletim,financeiro,alunos,painel,disciplinas})[pg]();
 }
 $("#nav").onclick=e=>{const b=e.target.closest("[data-g]");if(b){pg=b.dataset.g;draw();scrollTo(0,0)}};
 const empty=t=>`<p class="empty">${t}</p>`;
@@ -344,7 +349,8 @@ function boletim(){
   if(!M.some(a=>a.id===selAl))selAl=M[0].id;
   const a=aluno(selAl),b=db.bol[a.id]||{areas:{},obs:""};
   return`<section class="card"><div class="hd"><h2>📖 Boletim pedagógico</h2><select id="bs" style="max-width:260px" aria-label="Aluno">${M.map(x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${esc(x.nome)} — ${esc(x.turma)}</option>`).join("")}</select></div>
-  ${AREAS.map(r=>`<div class="area"><b>${r}</b>${dir()?`<select data-ar="${r}">${CONC.map(c=>`<option ${c===(b.areas[r]||CONC[0])?"selected":""}>${c}</option>`).join("")}</select>`:`<span class="tg t-op">${b.areas[r]||"Ainda não avaliado"}</span>`}</div>`).join("")}
+  <h3 style="margin:14px 0 0;font-size:1.05rem">🌱 Áreas de desenvolvimento</h3>${AREAS.map(r=>`<div class="area"><b>${r}</b>${dir()?`<select data-ar="${r}">${CONC.map(c=>`<option ${c===(b.areas[r]||CONC[0])?"selected":""}>${c}</option>`).join("")}</select>`:`<span class="tg t-op">${b.areas[r]||"Ainda não avaliado"}</span>`}</div>`).join("")}
+  ${(()=>{const DS=discDe(a.turma),bd=b.disc||{};return DS.length?`<h3 style="margin:22px 0 0;font-size:1.05rem">📚 Disciplinas — ${esc(a.turma)}</h3>`+DS.map(r=>`<div class="area"><b>${esc(r)}</b>${dir()?`<select data-dc="${esc(r)}">${CONC.map(c=>`<option ${c===(bd[r]||CONC[0])?"selected":""}>${c}</option>`).join("")}</select>`:`<span class="tg t-op">${esc(bd[r]||"Ainda não avaliado")}</span>`}</div>`).join(""):""})()}
   <label for="ob">Observações da professora</label><textarea id="ob" ${dir()?"":"disabled"}>${esc(b.obs)}</textarea>${dir()?`<p><button class="pri" data-a="bsave">Salvar boletim</button> <span class="sm" id="ok"></span></p>`:""}</section>`;
 }
 function financeiro(){
@@ -366,7 +372,21 @@ function alunos(){
 }
 function painel(){
   return`<div class="two">${TURMAS.map(t=>{const A=db.alunos.filter(a=>a.turma===t),atr=db.fin.filter(f=>A.some(a=>a.id===f.aluno)&&!f.pago&&f.venc<hojeISO()).length,np=db.posts.filter(p=>p.turma===t).length;
-  return`<section class="card tc" data-a="tur" data-i="${t}" tabindex="0" role="button" aria-label="Abrir a lista da turma ${t}"><div class="hd"><h2>${t}</h2><span class="tg t-ok">${A.length} aluno(s)</span></div><p class="sm">${np} publicação(ões) na agenda • ${atr} mensalidade(s) atrasada(s)</p><div class="chips">${A.map(a=>`<span>${esc(a.nome)}</span>`).join("")||empty("Turma sem alunos.")}</div><p class="sm" style="margin:10px 0 0">Toque para ver a lista, imprimir ou baixar.</p></section>`}).join("")}</div>`;
+  return`<section class="card tc" data-a="tur" data-i="${t}" tabindex="0" role="button" aria-label="Abrir a lista da turma ${t}"><div class="hd"><h2>${t}</h2><span class="tg t-ok">${A.length} aluno(s)</span></div><p class="sm">${np} publicação(ões) na agenda • ${atr} mensalidade(s) atrasada(s)</p><p class="sm" style="margin:4px 0 0">📚 ${esc(discDe(t).join(" • "))||"Sem disciplinas cadastradas"}</p><div class="chips">${A.map(a=>`<span>${esc(a.nome)}</span>`).join("")||empty("Turma sem alunos.")}</div><p class="sm" style="margin:10px 0 0">Toque para ver a lista, imprimir ou baixar.</p></section>`}).join("")}</div>`;
+}
+
+function disciplinas(){
+  const C=[...db.disc].sort((a,b)=>a.nome.localeCompare(b.nome,"pt-BR"));
+  const padrao=(t,n)=>(DISC_PADRAO[t]||[]).some(x=>x.toLowerCase()===n.toLowerCase());
+  return`<section class="card"><div class="hd"><h2>📚 Disciplinas</h2></div>${avisoHTML()}
+  <p class="sm">As disciplinas padrão de cada turma já aparecem automaticamente no boletim dos alunos matriculados. Aqui você cadastra disciplinas extras e escolhe em quais turmas elas valem.</p>
+  <label for="dn1">Nome da disciplina</label><input id="dn1" placeholder="Ex.: Educação Física">
+  <label>Turmas que terão essa disciplina</label>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:4px">${TURMAS.map(t=>`<label style="display:inline-flex;align-items:center;gap:6px;margin:0;font-weight:500"><input type="checkbox" data-dt value="${esc(t)}" style="width:auto;padding:0"> ${esc(t)}</label>`).join("")}</div>
+  <p class="err" id="derr" role="alert"></p>
+  <p><button class="pri" data-a="dadd">+ Cadastrar disciplina</button></p></section>
+  <div class="two">${TURMAS.map(t=>{const L=discDe(t);return`<section class="card"><div class="hd"><h2>${esc(t)}</h2><span class="tg t-ok">${L.length} disciplina(s)</span></div><div class="chips" style="margin-top:0">${L.map(n=>{const c=db.disc.find(d=>d.nome.toLowerCase()===n.toLowerCase()&&(d.turmas||[]).includes(t));return`<span>${esc(n)}${c&&!padrao(t,n)?` <button class="x" style="font-size:.8rem;padding:0 0 0 4px" data-a="dtur" data-i="${c.id}" data-t="${esc(t)}" aria-label="Remover ${esc(n)} de ${esc(t)}">✕</button>`:""}</span>`}).join("")||empty("Nenhuma disciplina.")}</div></section>`}).join("")}</div>
+  <section class="card"><div class="hd"><h2>➕ Cadastradas pela direção</h2></div>${C.map(d=>`<div class="item"><span class="ic">📘</span><div><b>${esc(d.nome)}</b><br><small>${(d.turmas||[]).map(esc).join(", ")}</small></div><button class="x" data-a="ddel" data-i="${d.id}" aria-label="Excluir ${esc(d.nome)}">🗑</button></div>`).join("")||empty("Nenhuma disciplina extra cadastrada ainda.")}</section>`;
 }
 
 /* ações */
@@ -375,7 +395,7 @@ const mensalDe=a=>a.mensal||VAL[a.turma]||0;
 const mesesDe=()=>{const h=new Date();let a=h.getFullYear(),m=h.getMonth()+1+(h.getDate()>10?1:0);if(m>12){m=1;a++}const L=[];for(;m<=12;m++)L.push(a+"-"+String(m).padStart(2,"0"));return L};
 const resumoMensal=()=>{const M=meus();if(!M.length)return"";const tot=M.reduce((s,a)=>s+mensalDe(a),0);return`<div class="item" style="flex-wrap:wrap"><span class="ic">💛</span><div><b>${dir()?"Total de mensalidades por mês":"Mensalidade"}: ${brl(tot)}</b><div class="chips">${M.map(a=>`<span style="background:var(--yel);color:var(--yelT)">${esc(a.nome)} — ${brl(mensalDe(a))}</span>`).join("")}</div></div></div>`};
 function formAluno(a,mat){
-  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label for="nc">Data de nascimento</label><input id="nc" name="nasc" type="date" value="${esc(a?.nasc)}"><label>Turma</label><select name="turma">${(a?.turma&&!TURMAS.includes(a.turma)?[a.turma,...TURMAS]:TURMAS).map(t=>`<option ${t===a?.turma?"selected":""}>${esc(t)}</option>`).join("")}</select><label for="tn">Turno</label><select id="tn" name="turno"><option value="">Selecione…</option>${TURNOS.map(t=>`<option ${t===a?.turno?"selected":""}>${t}</option>`).join("")}</select><label for="mae">Nome da mãe</label><input id="mae" name="mae" autocomplete="off" value="${esc(a?.mae)}"><label for="pai">Nome do pai</label><input id="pai" name="pai" autocomplete="off" value="${esc(a?.pai)}"><label for="rs">Responsável (usuário no app)</label><input id="rs" name="resp" value="${esc(a?.resp)}"><label for="mv">Valor da mensalidade (R$)</label><input id="mv" name="mensal" inputmode="decimal" ${a?"":'data-auto="1"'} value="${(a?mensalDe(a):VAL[TURMAS[0]]).toFixed(2).replace(".",",")}"><label for="tl">Telefone de contato</label><input id="tl" name="tel" type="tel" inputmode="tel" placeholder="(21) 99999-9999" value="${esc(a?.tel)}"><label for="en">Endereço</label><input id="en" name="end" autocomplete="off" placeholder="Rua, número, bairro, cidade" value="${esc(a?.end)}"><label for="ob2">Observações</label><textarea id="ob2" name="obs" style="min-height:70px" placeholder="Alergias, restrições, autorizados a buscar, etc.">${esc(a?.obs)}</textarea><label for="mt">Matrícula</label><input id="mt" value="${esc(a?a.mat:mat)}" readonly style="background:var(--cream);text-align:center;letter-spacing:.12em"><p class="sm">${a?"A matrícula não pode ser alterada.":"Gerada automaticamente (ano-número). Será o login e a senha do responsável."}</p>`;
+  return`<h2>${a?"Editar aluno":"Novo aluno"}</h2><label>Nome da criança</label><input name="nome" value="${esc(a?.nome)}"><label for="nc">Data de nascimento</label><input id="nc" name="nasc" type="date" value="${esc(a?.nasc)}"><label>Turma</label><select name="turma">${(a?.turma&&!TURMAS.includes(a.turma)?[a.turma,...TURMAS]:TURMAS).map(t=>`<option ${t===a?.turma?"selected":""}>${esc(t)}</option>`).join("")}</select><p class="sm" id="dsc" style="margin:6px 0 0">📚 Disciplinas: ${esc(discDe(a?.turma||TURMAS[0]).join(", "))||"nenhuma"}</p><label for="tn">Turno</label><select id="tn" name="turno"><option value="">Selecione…</option>${TURNOS.map(t=>`<option ${t===a?.turno?"selected":""}>${t}</option>`).join("")}</select><label for="mae">Nome da mãe</label><input id="mae" name="mae" autocomplete="off" value="${esc(a?.mae)}"><label for="pai">Nome do pai</label><input id="pai" name="pai" autocomplete="off" value="${esc(a?.pai)}"><label for="rs">Responsável (usuário no app)</label><input id="rs" name="resp" value="${esc(a?.resp)}"><label for="mv">Valor da mensalidade (R$)</label><input id="mv" name="mensal" inputmode="decimal" ${a?"":'data-auto="1"'} value="${(a?mensalDe(a):VAL[TURMAS[0]]).toFixed(2).replace(".",",")}"><label for="tl">Telefone de contato</label><input id="tl" name="tel" type="tel" inputmode="tel" placeholder="(21) 99999-9999" value="${esc(a?.tel)}"><label for="en">Endereço</label><input id="en" name="end" autocomplete="off" placeholder="Rua, número, bairro, cidade" value="${esc(a?.end)}"><label for="ob2">Observações</label><textarea id="ob2" name="obs" style="min-height:70px" placeholder="Alergias, restrições, autorizados a buscar, etc.">${esc(a?.obs)}</textarea><label for="mt">Matrícula</label><input id="mt" value="${esc(a?a.mat:mat)}" readonly style="background:var(--cream);text-align:center;letter-spacing:.12em"><p class="sm">${a?"A matrícula não pode ser alterada.":"Gerada automaticamente (ano-número). Será o login e a senha do responsável."}</p>`;
 }
 function proximaMat(){
   const ano=String(new Date().getFullYear());
@@ -407,12 +427,12 @@ const DOCCSS="body{font:13px/1.45 Arial,Helvetica,sans-serif;color:#222;margin:0
 const docHTML=(titulo,corpo)=>`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${DOCCSS}</style></head><body>${corpo}</body></html>`;
 const cab=(t,sub)=>`<div class="top"><div><h1>Recreação Baby</h1><small>${esc(sub)}</small></div><div style="text-align:right"><b>${esc(t)}</b><br><small>Emitido em ${new Date().toLocaleDateString("pt-BR")}</small></div></div>`;
 function fichaHTML(a){
-  const F=db.fin.filter(f=>f.aluno===a.id).sort((x,y)=>x.venc.localeCompare(y.venc)),b=db.bol[a.id]||{},ar=b.areas||{};
+  const F=db.fin.filter(f=>f.aluno===a.id).sort((x,y)=>x.venc.localeCompare(y.venc)),b=db.bol[a.id]||{},ar=b.areas||{},dc=b.disc||{},DS=discDe(a.turma);
   const kv=(k,v)=>`<tr><th>${k}</th><td>${TXT(v)}</td></tr>`;
   const pago=F.filter(f=>f.pago).reduce((s,f)=>s+f.valor,0),aberto=F.filter(f=>!f.pago).reduce((s,f)=>s+f.valor,0);
   return`<div class="ficha">${cab("Ficha do aluno","Educação Infantil")}<h2>Cadastro</h2><table class="kv">${kv("Nome",a.nome)}${kv("Matrícula",a.mat)}${kv("Turma",a.turma)}${kv("Turno",a.turno)}${kv("Nascimento",a.nasc?dia(a.nasc):"")}${kv("Mãe",a.mae)}${kv("Pai",a.pai)}${kv("Responsável",a.resp)}${kv("Telefone",a.tel)}${kv("Endereço",a.end)}${kv("Mensalidade",brl(mensalDe(a)))}${kv("Observações",a.obs)}</table>
 <h2>Financeiro</h2>${F.length?`<table><tr><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr>${F.map(f=>`<tr><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td class="num">${brl(f.valor)}</td><td>${status(f)[0]}${f.pago&&f.comp?.ok?" em "+dia(f.comp.ok):""}</td></tr>`).join("")}</table><p>Total pago: <b>${brl(pago)}</b> • Em aberto: <b>${brl(aberto)}</b></p>`:"<p>Sem mensalidades lançadas.</p>"}
-<h2>Boletim pedagógico</h2><table><tr><th>Área</th><th>Conceito</th></tr>${AREAS.map(r=>`<tr><td>${r}</td><td>${esc(ar[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table><p><b>Observações da professora:</b> ${TXT(b.obs)}</p></div>`;
+<h2>Boletim pedagógico</h2><table><tr><th>Área</th><th>Conceito</th></tr>${AREAS.map(r=>`<tr><td>${r}</td><td>${esc(ar[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table>${DS.length?`<h2>Disciplinas — ${esc(a.turma)}</h2><table><tr><th>Disciplina</th><th>Conceito</th></tr>${DS.map(r=>`<tr><td>${esc(r)}</td><td>${esc(dc[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table>`:""}<p><b>Observações da professora:</b> ${TXT(b.obs)}</p></div>`;
 }
 const fichasDoc=l=>docHTML("Fichas dos alunos",ordAl(l).map(fichaHTML).join(""));
 function listaHTML(t){
@@ -458,7 +478,18 @@ $("#pg").onclick=e=>{
   else if(a==="pdel")db.posts=db.posts.filter(p=>p.id!==i);
   else if(a==="eadd"){const ti=$("#et").value.trim();if(!ti||!$("#ed").value)return;db.eventos.push({id:uid(),data:$("#ed").value,titulo:ti,turma:$("#eu").value,txt:$("#ex").value.trim()})}
   else if(a==="edel")db.eventos=db.eventos.filter(p=>p.id!==i);
-  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
+  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);const disc={...(db.bol[selAl]?.disc||{})};document.querySelectorAll("[data-dc]").forEach(s=>disc[s.dataset.dc]=s.value);db.bol[selAl]={areas,disc,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
+  else if(a==="dadd"){
+    const n=$("#dn1").value.trim().replace(/\s+/g," "),T=[...document.querySelectorAll("[data-dt]:checked")].map(x=>x.value),er=$("#derr");
+    if(!n){er.textContent="Informe o nome da disciplina.";return}
+    if(/[.\/\[\]*`~]/.test(n)||/^__.*__$/.test(n)){er.textContent="O nome não pode ter os caracteres . / [ ] * ` ~";return}
+    if(!T.length){er.textContent="Marque ao menos uma turma.";return}
+    const ex=db.disc.find(d=>d.nome.toLowerCase()===n.toLowerCase());
+    if(ex)ex.turmas=[...new Set([...(ex.turmas||[]),...T])];else db.disc.push({id:uid(),nome:n,turmas:T});
+    aviso=`Disciplina "${n}" cadastrada para: ${T.join(", ")}. Já aparece no boletim desses alunos.`;
+  }
+  else if(a==="ddel"){const d=db.disc.find(x=>x.id===i);if(!d||!confirm(`Excluir a disciplina "${d.nome}" de todas as turmas?`))return;db.disc=db.disc.filter(x=>x.id!==i)}
+  else if(a==="dtur"){const d=db.disc.find(x=>x.id===i);if(!d)return;d.turmas=(d.turmas||[]).filter(x=>x!==t.dataset.t);if(!d.turmas.length)db.disc=db.disc.filter(x=>x!==d)}
   else if(a==="pay"){const f=db.fin.find(f=>f.id===i);if(f.pago&&f.comp&&!confirm("Desfazer a baixa? O comprovante anexado será removido."))return;f.pago=!f.pago;if(!f.pago)delete f.comp}
   else if(a==="rev")return revisar(db.fin.find(f=>f.id===i));
   else if(a==="tur")return turmaDlg(i);
@@ -488,7 +519,7 @@ $("#pg").onclick=e=>{
   save();draw();
 };
 document.addEventListener("input",e=>{if(e.target.id!=="tl")return;const d=e.target.value.replace(/\D/g,"").slice(0,11);e.target.value=d.length>10?d.replace(/(\d{2})(\d{5})(\d{4})/,"($1) $2-$3"):d.length>6?d.replace(/(\d{2})(\d{4})(\d{0,4})/,"($1) $2-$3"):d.length>2?d.replace(/(\d{2})(\d+)/,"($1) $2"):d});
-document.addEventListener("change",e=>{if(e.target.name!=="turma")return;const m=$("#mv");if(m&&m.dataset.auto)m.value=(VAL[e.target.value]||0).toFixed(2).replace(".",",")});
+document.addEventListener("change",e=>{if(e.target.name!=="turma")return;const ds=$("#dsc");if(ds)ds.textContent="📚 Disciplinas: "+(discDe(e.target.value).join(", ")||"nenhuma");const m=$("#mv");if(m&&m.dataset.auto)m.value=(VAL[e.target.value]||0).toFixed(2).replace(".",",")});
 document.addEventListener("input",e=>{if(e.target.id==="mv")delete e.target.dataset.auto});
 $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
 </script>
