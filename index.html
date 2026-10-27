@@ -109,14 +109,15 @@ button:disabled{opacity:.6;cursor:wait}
   <div class="l-right">
     <div class="box">
       <h2>Entrar no app</h2>
-      <p class="sm">Responsáveis: usuário e senha são a <b>matrícula do aluno</b> (ex.: 2026-0001). Diretoria: use o usuário e a senha da sua conta. 💛</p>
-      <label for="mat">👤 Usuário (matrícula)</label>
-      <input id="mat" placeholder="EX.: 2026-0001" autocomplete="username">
+      <p class="sm">Responsáveis: usuário e senha são a <b>matrícula do aluno</b> (ex.: 2026-0001). Diretoria: use o <b>e-mail</b> e a senha da sua conta. 💛</p>
+      <label for="mat">👤 E-mail (direção) ou matrícula</label>
+      <input id="mat" placeholder="seu@email.com ou 2026-0001" autocomplete="username" autocapitalize="off">
       <label for="pw">🔑 Senha</label>
       <input id="pw" type="password" placeholder="Responsáveis: repita a matrícula" autocomplete="current-password">
       <p class="err" id="err" role="alert"></p>
       <button class="pri w" id="go" style="margin-top:4px">Entrar</button>
       <button class="ghost w" id="newdir" type="button">🏫 Criar conta da direção</button>
+      <button class="ghost w" id="esq" type="button">Esqueci a senha (direção)</button>
     </div>
     <button class="pri inst hide" type="button">📲 Instalar o app</button>
     <p class="sm">Recreação Baby • Educação Infantil desde 2015</p>
@@ -137,9 +138,9 @@ button:disabled{opacity:.6;cursor:wait}
 
 <script type="module">
 import {firebaseConfig} from "./firebase-config.js";
-import {initializeApp} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
-import {getAuth,signInAnonymously} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,doc,setDoc,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+import {initializeApp,getApps} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,deleteUser,sendPasswordResetEmail} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,collection,query,where,doc,getDoc,setDoc,updateDoc,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -163,20 +164,38 @@ const clean=x=>JSON.parse(JSON.stringify(x));
 const sj=x=>JSON.stringify(x,(k,v)=>v&&typeof v==="object"&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:1)):v);
 const merge=(arr,docs)=>{const m=new Map(arr.map(x=>[x.id,x]));return docs.map(d=>{const o=m.get(d.id);if(!o)return d;Object.keys(o).forEach(k=>delete o[k]);return Object.assign(o,d)})};
 const erro=e=>{console.error(e);const m="Falha ao sincronizar com o banco de dados ("+(e.code||e.message)+").";U?alert(m):/^Login/.test($("#err").textContent)||($("#err").textContent=m)};
-let fs,last={},gate=new Set();
+let fs,auth,last={},souDir=false,iniciado=false,criando=false,migrando=false,meuUid="";
+const emailDe=m=>m.trim().toLowerCase()+"@resp.recreacaobaby.app";
 $("#go").disabled=$("#newdir").disabled=true;$("#go").textContent="Conectando…";
 function libera(){pronto=true;$("#go").disabled=$("#newdir").disabled=false;$("#go").textContent="Entrar"}
 function ouvir(c){
-  onSnapshot(collection(fs,c),{includeMetadataChanges:true},s=>{
+  const ref=souDir||c==="posts"||c==="eventos"?collection(fs,c):query(collection(fs,c),where(c==="alunos"?"uid":"ruid","==",meuUid));
+  onSnapshot(ref,{includeMetadataChanges:true},s=>{
     const docs=s.docs.map(d=>({...d.data(),id:d.id}));
     if(c==="bol")db.bol=Object.fromEntries(docs.map(d=>[d.id,d]));
     else{db[c]=merge(db[c],docs);if(c==="alunos")db.alunos.sort((a,b)=>a.mat.localeCompare(b.mat))}
     last[c]=Object.fromEntries(rows(c).map(x=>[x.id,sj(x)]));
-    if((c==="dir"||c==="alunos")&&!(s.metadata.fromCache&&s.empty))gate.add(c);
-    if(gate.size===2&&!pronto)libera();
+    if(c==="alunos"&&U&&!souDir&&db.alunos[0])U.nome=db.alunos[0].resp;
+    if(souDir&&!s.metadata.fromCache)migrar();
     const ae=document.activeElement,digitando=ae&&ae.closest&&ae.closest("#pg")&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName);
     if(U&&!$("#dlg").open&&!digitando)draw();
   },erro);
+}
+async function contaResp(al){
+  const sa=getAuth(getApps().find(x=>x.name==="sec")||initializeApp(firebaseConfig,"sec")),em=emailDe(al.mat);let id;
+  try{id=(await createUserWithEmailAndPassword(sa,em,al.mat)).user.uid}
+  catch(e){if(e.code!=="auth/email-already-in-use")throw e;id=(await signInWithEmailAndPassword(sa,em,al.mat)).user.uid}
+  await signOut(sa);
+  await setDoc(doc(fs,"resp",id),{id,aluno:al.id,mat:al.mat,nome:al.resp});
+  return id;
+}
+async function migrar(){
+  if(!souDir||migrando)return;migrando=true;
+  try{
+    for(const a of db.alunos)if(!a.uid){const u=await contaResp(a);await updateDoc(doc(fs,"alunos",a.id),{uid:u});a.uid=u}
+    for(const f of db.fin){const a=aluno(f.aluno);if(a?.uid&&!f.ruid){await updateDoc(doc(fs,"fin",f.id),{ruid:a.uid});f.ruid=a.uid}}
+    for(const [id,b] of Object.entries(db.bol)){const a=aluno(id);if(a?.uid&&!b.ruid){await updateDoc(doc(fs,"bol",id),{ruid:a.uid});b.ruid=a.uid}}
+  }catch(e){erro(e)}finally{migrando=false}
 }
 function save(){
   const w=[];
@@ -186,7 +205,7 @@ function save(){
     for(const id in prev)if(!(id in cur))w.push(deleteDoc(doc(fs,c,id)));
     last[c]=cur;
   });
-  const q=sj(db.seq);if(q!==last.seq){last.seq=q;w.push(setDoc(doc(fs,"meta","seq"),clean(db.seq)))}
+  const q=sj(db.seq);if(souDir&&q!==last.seq){last.seq=q;w.push(setDoc(doc(fs,"meta","seq"),clean(db.seq)))}
   Promise.all(w).catch(erro);
   return true;
 }
@@ -195,8 +214,23 @@ else{
   const fbApp=initializeApp(firebaseConfig);
   fs=initializeFirestore(fbApp,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
   setTimeout(()=>{if(!pronto){libera();if(!$("#err").textContent)$("#err").textContent="Sem resposta do servidor. Confira a internet e se o Firestore foi criado no console do Firebase."}},6000);
-  const iniciar=()=>{COLS.forEach(ouvir);onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro)};
-  signInAnonymously(getAuth(fbApp)).catch(e=>{console.error(e);$("#err").textContent="Login anônimo falhou ("+(e.code||e.message)+"). Ative \"Anônimo\" em Authentication > Sign-in method."}).finally(iniciar);
+  auth=getAuth(fbApp);
+  const iniciar=()=>{iniciado=true;COLS.filter(c=>souDir||c!=="dir").forEach(ouvir);if(souDir)onSnapshot(doc(fs,"meta","seq"),s=>{db.seq=s.exists()?s.data():{};last.seq=sj(db.seq)},erro)};
+  onAuthStateChanged(auth,async u=>{
+    if(criando)return;
+    if(!u){libera();return}
+    if(iniciado)return;
+    try{
+      const d=await getDoc(doc(fs,"dir",u.uid));
+      if(d.exists()){souDir=true;U={role:"dir",nome:d.data().nome||u.email}}
+      else{
+        const r=await getDoc(doc(fs,"resp",u.uid));
+        if(!r.exists()){await signOut(auth);$("#err").textContent="Esta conta não tem acesso ao app.";return}
+        meuUid=u.uid;U={role:"resp",nome:r.data().nome||""};
+      }
+    }catch(e){erro(e);return}
+    iniciar();libera();$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";draw();
+  });
 }
 const avisoHTML=()=>{const t=aviso;aviso="";return t?`<div class="flash" role="status">${esc(t)}</div>`:""};
 const pendentes=()=>dir()?db.fin.filter(f=>f.comp?.st==="pend").length:0;
@@ -209,39 +243,47 @@ const status=f=>f.pago?["Pago","t-ok"]:f.comp?.st==="pend"?["Aguardando confirma
 /* login */
 async function entrar(u,p){
   if(!pronto)return;
-  u=(u||"").trim().toUpperCase();p=(p||"").trim();
-  const d=db.dir.find(x=>x.user===u),a=db.alunos.find(x=>x.mat.toUpperCase()===u);
-  if(d&&d.hash===await sha(u,p))U={role:"dir",nome:d.nome};
-  else if(!d&&a&&p.toUpperCase()===a.mat.toUpperCase())U={role:"resp",nome:a.resp};
-  else{$("#err").textContent="Usuário ou senha incorretos. Responsáveis: use a matrícula do aluno nos dois campos.";return}
-  $("#err").textContent="";$("#mat").value=$("#pw").value="";$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";selAl=null;draw();scrollTo(0,0);
+  u=(u||"").trim();p=(p||"").trim();
+  if(!u||!p){$("#err").textContent="Informe o usuário e a senha.";return}
+  $("#err").textContent="Entrando…";
+  try{await signInWithEmailAndPassword(auth,u.includes("@")?u.toLowerCase():emailDe(u),p);location.reload()}
+  catch(e){$("#err").textContent=/invalid-credential|wrong-password|user-not-found|invalid-email|missing-password/.test(e.code)?"Usuário ou senha incorretos. Responsáveis: use a matrícula do aluno nos dois campos. Direção: use o e-mail.":e.code==="auth/too-many-requests"?"Muitas tentativas. Aguarde alguns minutos e tente de novo.":e.code==="auth/operation-not-allowed"?"Ative o login por E-mail/senha no Firebase (Authentication > Sign-in method).":"Não foi possível entrar ("+(e.code||e.message)+")."}
 }
 const tentar=()=>entrar($("#mat").value,$("#pw").value);
 $("#go").onclick=tentar;
 $("#mat").onkeydown=$("#pw").onkeydown=e=>{if(e.key==="Enter")tentar()};
-$("#out").onclick=()=>{U=null;$("#mat").value=$("#pw").value="";$("#err").textContent="";$("#app").classList.add("hide");$("#login").classList.remove("hide")};
-const COD_ESCOLA="020166";
-const novaDir=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Essa conta tem acesso completo: cadastra alunos, publica na agenda, lança o boletim e confere os pagamentos.</p>
+$("#out").onclick=()=>signOut(auth).then(()=>location.reload());
+async function criarDir(v){
+  const email=v.email.toLowerCase();let c;criando=true;
+  try{c=await createUserWithEmailAndPassword(auth,email,v.senha)}
+  catch(e){criando=false;throw e.code==="auth/email-already-in-use"?"Este e-mail já tem conta. Use Entrar.":e.code==="auth/operation-not-allowed"?"Ative o login por E-mail/senha no Firebase (Authentication > Sign-in method).":"Não foi possível criar a conta ("+(e.code||e.message)+")."}
+  try{
+    await setDoc(doc(fs,"dir",c.user.uid),{id:c.user.uid,nome:v.nome,email,codigo:v.cod.replace(/\D/g,"")});
+    await setDoc(doc(fs,"dir",c.user.uid),{id:c.user.uid,nome:v.nome,email});
+  }catch(e){
+    console.error(e);await deleteUser(c.user).catch(()=>{});criando=false;
+    throw "Código de autorização incorreto (ou o documento config/escola ainda não foi criado no Firestore).";
+  }
+  location.reload();
+}
+$("#newdir").onclick=()=>dlg(`<h2>🏫 Criar conta da direção</h2><p class="sm">Conta com acesso completo: cadastra alunos, publica na agenda, lança o boletim e confere os pagamentos.</p>
 <label for="dn">Seu nome</label><input id="dn" name="nome" autocomplete="name">
-<label for="du">Usuário de acesso</label><input id="du" name="user" autocomplete="off" placeholder="EX.: DIR-MARIA">
-<label for="ds">Senha</label><input id="ds" name="senha" type="password" autocomplete="new-password">
-<label for="ds2">Confirmar senha</label><input id="ds2" name="senha2" type="password" autocomplete="new-password">`,v=>{
-  const u=v.user.toUpperCase();
-  if(!v.nome||!u||!v.senha)return"Preencha todos os campos.";
-  if(!/^[A-Z0-9._-]{3,20}$/.test(u))return"Usuário: 3 a 20 caracteres (letras, números, ponto, hífen ou sublinhado), sem espaços.";
-  if(/^\d{4}-\d+$/.test(u))return"Esse formato é reservado às matrículas dos alunos. Escolha outro usuário.";
-  if(db.dir.some(d=>d.user===u))return"Esse usuário já existe.";
-  if(v.senha.length<4)return"A senha precisa ter pelo menos 4 caracteres.";
+<label for="dm">E-mail</label><input id="dm" name="email" type="email" autocomplete="email" autocapitalize="off">
+<label for="ds">Senha (mínimo 6 caracteres)</label><input id="ds" name="senha" type="password" autocomplete="new-password">
+<label for="ds2">Confirmar senha</label><input id="ds2" name="senha2" type="password" autocomplete="new-password">
+<label for="dc">Código de autorização da escola</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="off" spellcheck="false">`,v=>{
+  if(!v.nome||!v.email||!v.senha||!v.cod)return"Preencha todos os campos.";
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.email))return"Digite um e-mail válido.";
+  if(v.senha.length<6)return"A senha precisa ter pelo menos 6 caracteres.";
   if(v.senha!==v.senha2)return"As senhas não conferem.";
-  sha(u,v.senha).then(h=>{db.dir.push({id:uid(),nome:v.nome,user:u,hash:h});save();entrar(u,v.senha)});
+  $("#err").textContent="Criando conta…";
+  criarDir(v).catch(m=>$("#err").textContent=m);
 },"Criar conta");
-$("#newdir").onclick=()=>{
-  dlg(`<h2>🔒 Autorização da escola</h2><p class="sm">Para criar uma conta da direção, digite o código de autorização da escola.</p><label for="dc">Código de autorização</label><input id="dc" name="cod" type="password" inputmode="numeric" autocomplete="new-password" autocapitalize="off" spellcheck="false"><label style="display:flex;gap:8px;align-items:center;font-weight:400;margin-top:8px"><input type="checkbox" id="dmost" style="width:auto"> Mostrar código</label>`,v=>{
-    if((v.cod||"").replace(/\D/g,"")!==COD_ESCOLA)return"Código incorreto.";
-    setTimeout(novaDir,0);
-  },"Liberar");
-  $("#dmost").onchange=e=>{$("#dc").type=e.target.checked?"text":"password"};
-  $("#dc").focus();
+$("#esq").onclick=async()=>{
+  const e=$("#mat").value.trim().toLowerCase();
+  if(!e.includes("@")){$("#err").textContent="Digite o e-mail da direção no campo acima e toque de novo.";return}
+  try{await sendPasswordResetEmail(auth,e);$("#err").textContent="Se esse e-mail tiver conta, enviamos o link para criar uma nova senha."}
+  catch(x){$("#err").textContent="Não foi possível enviar ("+(x.code||x.message)+")."}
 };
 
 function dlg(html,ok,lbl){
@@ -351,7 +393,7 @@ $("#pg").onclick=e=>{
   else if(a==="pdel")db.posts=db.posts.filter(p=>p.id!==i);
   else if(a==="eadd"){const ti=$("#et").value.trim();if(!ti||!$("#ed").value)return;db.eventos.push({id:uid(),data:$("#ed").value,titulo:ti,turma:$("#eu").value,txt:$("#ex").value.trim()})}
   else if(a==="edel")db.eventos=db.eventos.filter(p=>p.id!==i);
-  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value};save();$("#ok").textContent="Boletim salvo.";return}
+  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
   else if(a==="pay"){const f=db.fin.find(f=>f.id===i);if(f.pago&&f.comp&&!confirm("Desfazer a baixa? O comprovante anexado será removido."))return;f.pago=!f.pago;if(!f.pago)delete f.comp}
   else if(a==="rev")return revisar(db.fin.find(f=>f.id===i));
   else if(a==="pagar"){
@@ -367,9 +409,9 @@ $("#pg").onclick=e=>{
       comprimir(fl,d=>{if(!d){$("#de").textContent="Não foi possível ler essa imagem.";return}img=d;$("#cp").src=d;$("#cp").classList.remove("hide")})};
     return;
   }
-  else if(a==="anew"){const p=proximaMat();return dlg(formAluno(null,p.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const m=money(v.mensal);if(!(m>0))return"Informe o valor da mensalidade (ex.: 1.350,00).";v.mensal=m;const q=proximaMat(),id=uid();db.seq[q.ano]=q.n;db.alunos.push({id,...v,mat:q.mat});mesesDe().forEach(ms=>db.fin.push({id:uid(),aluno:id,mes:ms,valor:m,venc:ms+"-10",pago:false}));aviso=`Aluno cadastrado! A matrícula ${q.mat} é o login e a senha de ${v.resp} no app.`;save();draw()},"Cadastrar")}
+  else if(a==="anew"){const p=proximaMat();return dlg(formAluno(null,p.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const m=money(v.mensal);if(!(m>0))return"Informe o valor da mensalidade (ex.: 1.350,00).";v.mensal=m;const q=proximaMat(),id=uid();contaResp({id,mat:q.mat,resp:v.resp}).then(ruid=>{db.seq[q.ano]=q.n;db.alunos.push({id,...v,mat:q.mat,uid:ruid});mesesDe().forEach(ms=>db.fin.push({id:uid(),aluno:id,ruid,mes:ms,valor:m,venc:ms+"-10",pago:false}));aviso=`Aluno cadastrado! A matrícula ${q.mat} é o login e a senha de ${v.resp} no app.`;save();draw()}).catch(e=>{console.error(e);alert("Não foi possível criar o acesso do responsável ("+(e.code||e.message)+"). Tente novamente.")})},"Cadastrar")}
   else if(a==="aed"){const x=aluno(i);return dlg(formAluno(x,x.mat),v=>{if(!v.nome||!v.resp)return"Informe o nome da criança e do responsável.";const m=money(v.mensal);if(!(m>0))return"Informe o valor da mensalidade (ex.: 1.350,00).";v.mensal=m;db.fin.filter(f=>f.aluno===x.id&&!f.pago&&f.comp?.st!=="pend").forEach(f=>f.valor=m);Object.assign(x,v);save();draw()})}
-  else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? Mensalidades e boletim também serão removidos.`))return;db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);delete db.bol[i]}
+  else if(a==="adel"){const x=aluno(i);if(!confirm(`Excluir ${x.nome}? Mensalidades e boletim também serão removidos.`))return;if(x.uid)deleteDoc(doc(fs,"resp",x.uid)).catch(erro);db.alunos=db.alunos.filter(y=>y!==x);db.fin=db.fin.filter(f=>f.aluno!==i);delete db.bol[i]}
   save();draw();
 };
 document.addEventListener("input",e=>{if(e.target.id!=="tl")return;const d=e.target.value.replace(/\D/g,"").slice(0,11);e.target.value=d.length>10?d.replace(/(\d{2})(\d{5})(\d{4})/,"($1) $2-$3"):d.length>6?d.replace(/(\d{2})(\d{4})(\d{0,4})/,"($1) $2-$3"):d.length>2?d.replace(/(\d{2})(\d+)/,"($1) $2"):d});

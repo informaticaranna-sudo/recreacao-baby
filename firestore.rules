@@ -1,8 +1,58 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+
+    function logado() { return request.auth != null; }
+    function ehDirecao() {
+      return logado() && exists(/databases/$(database)/documents/dir/$(request.auth.uid));
     }
+    function ehResp() {
+      return logado() && exists(/databases/$(database)/documents/resp/$(request.auth.uid));
+    }
+
+    // Segredo da escola (config/escola, campo "codigo"): nunca legível pelo app.
+    match /config/{doc} { allow read, write: if false; }
+
+    // Contas da direção: só nascem com e-mail/senha E com o código correto.
+    match /dir/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || ehDirecao());
+      allow create: if logado() && request.auth.uid == uid
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && request.resource.data.codigo == get(/databases/$(database)/documents/config/escola).data.codigo;
+      allow update, delete: if ehDirecao();
+    }
+
+    // Contas dos responsáveis: criadas pela direção ao cadastrar o aluno.
+    match /resp/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || ehDirecao());
+      allow write: if ehDirecao();
+    }
+
+    // Cada responsável lê apenas o aluno, as mensalidades e o boletim vinculados à sua conta.
+    match /alunos/{id} {
+      allow read: if ehDirecao() || (ehResp() && resource.data.uid == request.auth.uid);
+      allow write: if ehDirecao();
+    }
+    match /bol/{id} {
+      allow read: if ehDirecao() || (ehResp() && resource.data.ruid == request.auth.uid);
+      allow write: if ehDirecao();
+    }
+    match /fin/{id} {
+      allow read: if ehDirecao() || (ehResp() && resource.data.ruid == request.auth.uid);
+      allow create, delete: if ehDirecao();
+      allow update: if ehDirecao() || (ehResp() && resource.data.ruid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['comp']));
+    }
+
+    // Agenda e calendário: direção e responsáveis leem; só a direção grava.
+    match /posts/{id} {
+      allow read: if ehDirecao() || ehResp();
+      allow write: if ehDirecao();
+    }
+    match /eventos/{id} {
+      allow read: if ehDirecao() || ehResp();
+      allow write: if ehDirecao();
+    }
+    match /meta/{id} { allow read, write: if ehDirecao(); }
   }
 }
