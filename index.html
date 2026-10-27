@@ -335,7 +335,7 @@ function inicio(){
   const dt=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   return`<section class="hello grad"><small>${dt}</small><h1>Olá, ${dir()?"Direção":esc(U.nome.split(" ")[0])}! 👋</h1><div class="sm" style="font-size:1rem">Tudo pronto para mais um dia de brincadeiras e aprendizado por aqui.</div></section>
   ${pendentes()?`<div class="alerta"><span>🧾 ${pendentes()} comprovante(s) aguardando sua confirmação</span><button class="pri s" data-g="financeiro">Conferir</button></div>`:""}
-  <div class="stats"><button type="button" class="st" data-g="${dir()?"alunos":"boletim"}" style="background:var(--blue);color:var(--blueT)"><span class="e">🧒</span><b>${ids.length}</b><span>Alunos matriculados</span></button>
+  <div class="stats">${dir()?`<button type="button" class="st" data-g="alunos" style="background:var(--blue);color:var(--blueT)"><span class="e">🧒</span><b>${ids.length}</b><span>Alunos matriculados</span></button>`:""}
   <button type="button" class="st" data-g="financeiro" style="background:var(--yel);color:var(--yelT)"><span class="e">💛</span><b>${brl(F.reduce((s,f)=>s+f.valor,0))}</b><span>Mensalidades em aberto</span></button>
   <button type="button" class="st" data-g="financeiro" style="background:var(--pink);color:var(--pinkT)"><span class="e">⏰</span><b>${F.filter(f=>f.venc<H).length}</b><span>Mensalidades atrasadas</span></button>
   <button type="button" class="st" data-g="calendario" style="background:var(--green);color:var(--greenT)"><span class="e">🎈</span><b>${prox.length}</b><span>Próximos eventos</span></button></div>
@@ -363,8 +363,8 @@ function boletim(){
     const lin=(DS.length?`<div class="nh"><span></span><div class="ns">${[1,2,3,4].map(n=>`<span>${n}ª nota</span>`).join("")}</div><span>Média final</span></div>`:"")+DS.map(r=>{const c=db.disc.find(d=>d.nome.toLowerCase()===r.toLowerCase()&&(d.turmas||[]).includes(a.turma));
       const arr=nt[r]||[],m=mediaNotas(arr);
       return`<div class="nrow"><b>${esc(r)}${dir()&&c&&!pad.includes(r.toLowerCase())?` <button type="button" class="x" style="font-size:.8rem" data-a="dtur" data-i="${c.id}" data-t="${esc(a.turma)}" aria-label="Remover ${esc(r)} da turma ${esc(a.turma)}">✕</button>`:""}</b><div class="ns">${[0,1,2,3].map(k=>dir()?`<div><label>${k+1}ª nota</label><input type="number" min="0" max="10" step="0.1" inputmode="decimal" data-nt="${esc(r)}" data-k="${k}" value="${arr[k]??""}" aria-label="${esc(r)} — ${k+1}ª nota"></div>`:`<div><span class="nv">${arr[k]!=null&&arr[k]!==""?fmtNota(arr[k]):"–"}</span></div>`).join("")}</div><span class="med${m.parcial?" par":""}" data-med="${esc(r)}" title="${m.parcial?"Média parcial (faltam notas)":"Média final"}">${m.v==null?"–":fmtNota(m.v)}</span></div>`}).join("");
-    const form=dir()?`<div class="row" style="margin-top:12px;align-items:end"><div><label for="nd">➕ Cadastrar nova disciplina</label><input id="nd" placeholder="Ex.: Educação Física"></div><div><label for="ndt">Vale para</label><select id="ndt"><option value="${esc(a.turma)}">Só a turma ${esc(a.turma)}</option><option value="*">Todas as turmas</option></select></div><div><button type="button" class="pri" data-a="bdadd">Adicionar</button></div></div><p class="err" id="derr2" role="alert"></p>`:"";
-    return(DS.length||dir()?`<h3 style="margin:22px 0 0;font-size:1.05rem">📚 Disciplinas — ${esc(a.turma)}</h3>`:"")+lin+form})()}
+    const form="";
+    return(DS.length?`<h3 style="margin:22px 0 0;font-size:1.05rem">📚 Disciplinas — ${esc(a.turma)}</h3>`:"")+lin+form})()}
   <label for="ob">Observações da professora</label><textarea id="ob" ${dir()?"":"disabled"}>${esc(b.obs)}</textarea>${dir()?`<p><button class="pri" data-a="bsave">Salvar boletim</button> <span class="sm" id="ok"></span></p>`:""}</section>`;
 }
 function financeiro(){
