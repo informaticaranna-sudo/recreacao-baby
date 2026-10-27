@@ -93,6 +93,9 @@ th{font-size:.8rem;color:var(--mute);font-weight:700}
 .chips span{background:var(--blue);color:var(--blueT);border-radius:999px;padding:2px 10px;font-size:.82rem}
 dialog{border:1px solid var(--line);border-radius:26px;max-width:440px;width:92%;color:var(--ink)}
 dialog::backdrop{background:#0006}
+dialog.wide{max-width:760px}
+.tc{cursor:pointer;transition:box-shadow .15s,transform .15s}
+.tc:hover{box-shadow:0 8px 24px #e05a4718;transform:translateY(-2px)}
 .empty{color:var(--mute);margin:6px 0}
 @media(max-width:820px){#login{grid-template-columns:1fr}.l-left{min-height:340px}.l-left h1{font-size:2rem}.hello{padding:22px}.area{grid-template-columns:1fr}}
 @media(max-width:700px){
@@ -359,11 +362,11 @@ function financeiro(){
   return`<section class="card"><div class="hd"><h2>💳 Financeiro</h2></div>${avisoHTML()}${resumoMensal()}${dir()?"":`<p class="sm">Para pagar, toque em <b>Pagar</b>, faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p>`}<div class="sc"><table><tr><th>Aluno</th><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr>${F.map(f=>{const s=status(f),c=f.comp;return`<tr><td>${esc(aluno(f.aluno)?.nome)}</td><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td>${brl(f.valor)}</td><td><span class="tg ${s[1]}">${s[0]}</span>${c?.st==="rej"&&!f.pago?`<div class="sm">Comprovante recusado${c.motivo?": "+esc(c.motivo):""}${dir()?"":". Envie outro."}</div>`:""}</td><td>${acao(f)}</td></tr>`}).join("")||`<tr><td colspan="6">${empty("Sem mensalidades.")}</td></tr>`}</table></div></section>`;
 }
 function alunos(){
-  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><button class="pri" data-a="anew">+ Novo aluno</button></div>${avisoHTML()}<div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Turno</th><th>Nascimento</th><th>Responsável</th><th>Telefone</th><th>Mensalidade</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.turno)||"—"}</td><td>${a.nasc?dia(a.nasc):"—"}</td><td>${esc(a.resp)}</td><td>${esc(a.tel)||"—"}</td><td>${brl(mensalDe(a))}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
+  return`<section class="card"><div class="hd"><h2>👥 Alunos & Turmas</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="ghost" data-a="fall-pr">🖨 Imprimir fichas</button><button class="ghost" data-a="fall-dl">📥 Baixar todas as fichas</button><button class="pri" data-a="anew">+ Novo aluno</button></div></div>${avisoHTML()}<div class="sc"><table><tr><th>Aluno</th><th>Turma</th><th>Turno</th><th>Nascimento</th><th>Responsável</th><th>Telefone</th><th>Mensalidade</th><th>Matrícula</th><th></th></tr>${db.alunos.map(a=>`<tr><td><b>${esc(a.nome)}</b></td><td>${esc(a.turma)}</td><td>${esc(a.turno)||"—"}</td><td>${a.nasc?dia(a.nasc):"—"}</td><td>${esc(a.resp)}</td><td>${esc(a.tel)||"—"}</td><td>${brl(mensalDe(a))}</td><td>${esc(a.mat)}</td><td><button class="ghost" data-a="ficha" data-i="${a.id}">📄 Ficha</button> <button class="ghost" data-a="aed" data-i="${a.id}">Editar</button> <button class="x" data-a="adel" data-i="${a.id}" aria-label="Excluir ${esc(a.nome)}">🗑</button></td></tr>`).join("")}</table></div></section>`;
 }
 function painel(){
   return`<div class="two">${TURMAS.map(t=>{const A=db.alunos.filter(a=>a.turma===t),atr=db.fin.filter(f=>A.some(a=>a.id===f.aluno)&&!f.pago&&f.venc<hojeISO()).length,np=db.posts.filter(p=>p.turma===t).length;
-  return`<section class="card"><div class="hd"><h2>${t}</h2><span class="tg t-ok">${A.length} aluno(s)</span></div><p class="sm">${np} publicação(ões) na agenda • ${atr} mensalidade(s) atrasada(s)</p><div class="chips">${A.map(a=>`<span>${esc(a.nome)}</span>`).join("")||empty("Turma sem alunos.")}</div></section>`}).join("")}</div>`;
+  return`<section class="card tc" data-a="tur" data-i="${t}" tabindex="0" role="button" aria-label="Abrir a lista da turma ${t}"><div class="hd"><h2>${t}</h2><span class="tg t-ok">${A.length} aluno(s)</span></div><p class="sm">${np} publicação(ões) na agenda • ${atr} mensalidade(s) atrasada(s)</p><div class="chips">${A.map(a=>`<span>${esc(a.nome)}</span>`).join("")||empty("Turma sem alunos.")}</div><p class="sm" style="margin:10px 0 0">Toque para ver a lista, imprimir ou baixar.</p></section>`}).join("")}</div>`;
 }
 
 /* ações */
@@ -396,6 +399,58 @@ function revisar(f){
     $("#dr").onclick=()=>{f.comp={st:"rej",env:c.env,motivo:$("#mo").value.trim()};save();$("#dlg").close();draw()};
   }
 }
+/* ===== fichas, listas de turma, impressão e download ===== */
+const TXT=s=>esc(s)||"—";
+const slug=s=>String(s).normalize("NFKD").replace(/[̀-ͯ]/g,"").replace(/[^a-z0-9]+/gi,"-").replace(/^-|-$/g,"").toLowerCase();
+const ordAl=l=>[...l].sort((x,y)=>TURMAS.indexOf(x.turma)-TURMAS.indexOf(y.turma)||x.nome.localeCompare(y.nome,"pt-BR"));
+const DOCCSS="body{font:13px/1.45 Arial,Helvetica,sans-serif;color:#222;margin:0;padding:18px}h1{font-size:20px;margin:0}h2{font-size:15px;margin:18px 0 6px;border-bottom:2px solid #e05a47;padding-bottom:3px}.top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #e05a47;padding-bottom:8px;margin-bottom:6px}.top small{color:#666}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:5px 7px;border:1px solid #ddd;vertical-align:top}th{background:#faf3e3;font-weight:700}.kv th{width:28%}.ficha{page-break-after:always}.ficha:last-child{page-break-after:auto}.num{text-align:right}@page{margin:12mm}";
+const docHTML=(titulo,corpo)=>`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>${DOCCSS}</style></head><body>${corpo}</body></html>`;
+const cab=(t,sub)=>`<div class="top"><div><h1>Recreação Baby</h1><small>${esc(sub)}</small></div><div style="text-align:right"><b>${esc(t)}</b><br><small>Emitido em ${new Date().toLocaleDateString("pt-BR")}</small></div></div>`;
+function fichaHTML(a){
+  const F=db.fin.filter(f=>f.aluno===a.id).sort((x,y)=>x.venc.localeCompare(y.venc)),b=db.bol[a.id]||{},ar=b.areas||{};
+  const kv=(k,v)=>`<tr><th>${k}</th><td>${TXT(v)}</td></tr>`;
+  const pago=F.filter(f=>f.pago).reduce((s,f)=>s+f.valor,0),aberto=F.filter(f=>!f.pago).reduce((s,f)=>s+f.valor,0);
+  return`<div class="ficha">${cab("Ficha do aluno","Educação Infantil")}<h2>Cadastro</h2><table class="kv">${kv("Nome",a.nome)}${kv("Matrícula",a.mat)}${kv("Turma",a.turma)}${kv("Turno",a.turno)}${kv("Nascimento",a.nasc?dia(a.nasc):"")}${kv("Mãe",a.mae)}${kv("Pai",a.pai)}${kv("Responsável",a.resp)}${kv("Telefone",a.tel)}${kv("Endereço",a.end)}${kv("Mensalidade",brl(mensalDe(a)))}${kv("Observações",a.obs)}</table>
+<h2>Financeiro</h2>${F.length?`<table><tr><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr>${F.map(f=>`<tr><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td class="num">${brl(f.valor)}</td><td>${status(f)[0]}${f.pago&&f.comp?.ok?" em "+dia(f.comp.ok):""}</td></tr>`).join("")}</table><p>Total pago: <b>${brl(pago)}</b> • Em aberto: <b>${brl(aberto)}</b></p>`:"<p>Sem mensalidades lançadas.</p>"}
+<h2>Boletim pedagógico</h2><table><tr><th>Área</th><th>Conceito</th></tr>${AREAS.map(r=>`<tr><td>${r}</td><td>${esc(ar[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table><p><b>Observações da professora:</b> ${TXT(b.obs)}</p></div>`;
+}
+const fichasDoc=l=>docHTML("Fichas dos alunos",ordAl(l).map(fichaHTML).join(""));
+function listaHTML(t){
+  const A=ordAl(db.alunos.filter(a=>a.turma===t));
+  return docHTML("Turma "+t,`${cab(t,"Lista de alunos da turma")}<p>${A.length} aluno(s)</p><table><tr><th>#</th><th>Aluno</th><th>Turno</th><th>Nascimento</th><th>Responsável</th><th>Telefone</th></tr>${A.map((a,n)=>`<tr><td>${n+1}</td><td>${esc(a.nome)}</td><td>${TXT(a.turno)}</td><td>${a.nasc?dia(a.nasc):"—"}</td><td>${TXT(a.resp)}</td><td>${TXT(a.tel)}</td></tr>`).join("")||'<tr><td colspan="6">Turma sem alunos.</td></tr>'}</table>`);
+}
+const cel=v=>{v=String(v??"");if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"'};
+function listaCSV(t){
+  const A=ordAl(db.alunos.filter(a=>a.turma===t)),H=["Aluno","Turma","Turno","Nascimento","Mãe","Pai","Responsável","Telefone","Endereço","Matrícula","Mensalidade","Observações"];
+  return"﻿"+[H,...A.map(a=>[a.nome,a.turma,a.turno,a.nasc?dia(a.nasc):"",a.mae,a.pai,a.resp,a.tel,a.end,a.mat,mensalDe(a).toFixed(2).replace(".",","),a.obs])].map(r=>r.map(cel).join(";")).join("\r\n");
+}
+function baixar(nome,tipo,conteudo){
+  const u=URL.createObjectURL(new Blob([conteudo],{type:tipo})),l=document.createElement("a");
+  l.href=u;l.download=nome;document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function imprimir(html){
+  const f=document.createElement("iframe");f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(f);const d=f.contentWindow.document;d.open();d.write(html);d.close();
+  setTimeout(()=>{f.contentWindow.focus();f.contentWindow.print();setTimeout(()=>f.remove(),60000)},300);
+}
+function turmaDlg(t){
+  const A=ordAl(db.alunos.filter(a=>a.turma===t)),off=A.length?"":"disabled";
+  $("#dlg").classList.add("wide");
+  $("#fm").innerHTML=`<h2>${esc(t)}</h2><p class="sm">${A.length} aluno(s)</p>${A.length?`<div class="sc"><table style="min-width:0"><tr><th>#</th><th>Aluno</th><th>Turno</th><th>Responsável</th><th>Telefone</th></tr>${A.map((a,n)=>`<tr><td>${n+1}</td><td><b>${esc(a.nome)}</b></td><td>${TXT(a.turno)}</td><td>${TXT(a.resp)}</td><td>${TXT(a.tel)}</td></tr>`).join("")}</table></div>`:empty("Turma sem alunos.")}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button type="button" class="ghost" id="dx">Fechar</button><button type="button" class="ghost" id="dp" ${off}>🖨 Imprimir</button><button type="button" class="pri" id="dd" ${off}>📥 Baixar planilha</button></div>`;
+  $("#dlg").showModal();
+  $("#dx").onclick=()=>$("#dlg").close();
+  $("#dp").onclick=()=>imprimir(listaHTML(t));
+  $("#dd").onclick=()=>baixar("turma-"+slug(t)+".csv","text/csv;charset=utf-8",listaCSV(t));
+}
+function fichaDlg(a){
+  $("#fm").innerHTML=`<h2>📄 Ficha de ${esc(a.nome)}</h2><p class="sm">Cadastro completo, financeiro e boletim.</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap"><button type="button" class="ghost" id="dx">Fechar</button><button type="button" class="ghost" id="dp">🖨 Imprimir</button><button type="button" class="pri" id="dd">📥 Baixar ficha</button></div>`;
+  $("#dlg").showModal();
+  $("#dx").onclick=()=>$("#dlg").close();
+  $("#dp").onclick=()=>imprimir(fichasDoc([a]));
+  $("#dd").onclick=()=>baixar("ficha-"+slug(a.nome)+".html","text/html;charset=utf-8",fichasDoc([a]));
+}
+$("#dlg").addEventListener("close",()=>$("#dlg").classList.remove("wide"));
+$("#pg").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target.classList.contains("tc")){e.preventDefault();e.target.click()}};
 $("#pg").onclick=e=>{
   const g=e.target.closest("[data-g]");if(g){pg=g.dataset.g;draw();return}
   const t=e.target.closest("[data-a]");if(!t)return;const i=t.dataset.i,a=t.dataset.a;
@@ -406,6 +461,14 @@ $("#pg").onclick=e=>{
   else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);db.bol[selAl]={areas,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
   else if(a==="pay"){const f=db.fin.find(f=>f.id===i);if(f.pago&&f.comp&&!confirm("Desfazer a baixa? O comprovante anexado será removido."))return;f.pago=!f.pago;if(!f.pago)delete f.comp}
   else if(a==="rev")return revisar(db.fin.find(f=>f.id===i));
+  else if(a==="tur")return turmaDlg(i);
+  else if(a==="ficha")return fichaDlg(aluno(i));
+  else if(a==="fall-dl"||a==="fall-pr"){
+    if(!db.alunos.length){alert("Não há alunos cadastrados.");return}
+    const h=fichasDoc(db.alunos);
+    if(a==="fall-dl")baixar("fichas-alunos-"+hojeISO()+".html","text/html;charset=utf-8",h);else imprimir(h);
+    return;
+  }
   else if(a==="pagar"){
     const f=db.fin.find(f=>f.id===i),x=aluno(f.aluno);let img=null;
     dlg(`<h2>💳 Pagar mensalidade</h2><p class="sm">${esc(x.nome)} • ${mesNome(f.mes)} • vence em ${dia(f.venc)}<br><b>${brl(f.valor)}</b></p><p class="sm">Faça o pagamento e anexe a foto do comprovante. A mensalidade só é baixada depois que a diretoria conferir.</p><label for="cf">📎 Foto do comprovante</label><input id="cf" type="file" accept="image/*"><img id="cp" class="comp hide" alt="Pré-visualização do comprovante">`,()=>{
