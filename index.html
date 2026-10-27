@@ -107,6 +107,15 @@ header nav button{padding:8px 12px;font-size:.9rem}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 button:disabled{opacity:.6;cursor:wait}
+.dsc2{display:grid;grid-template-columns:minmax(120px,1fr) repeat(4,74px) 64px 120px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.dsc2.dh{font-size:.8rem;color:var(--mute);font-weight:700;border-bottom:2px solid var(--line)}
+.dsc2.dh span{text-align:center}.dsc2.dh span:first-child{text-align:left}
+.dsc2 .nc small,.dsc2 .med small{display:none;color:var(--mute);font-size:.72rem}
+.dsc2 input{padding:8px 6px;text-align:center;border-radius:14px}
+.dsc2 .nv,.dsc2 .med{text-align:center;display:block}.dsc2 .med{font-weight:700}
+.dsc2 .sitw{text-align:center}
+input.bad{border-color:var(--pinkT)!important;background:var(--pink)}
+@media(max-width:700px){.dsc2{grid-template-columns:repeat(4,1fr)}.dsc2>:first-child{grid-column:1/-1}.dsc2.dh{display:none}.dsc2 .nc small{display:block}.dsc2 .med small{display:inline}.dsc2 .med{grid-column:1/3;text-align:left}.dsc2 .sitw{grid-column:3/-1;text-align:right}}
 </style>
 </head>
 <body>
@@ -166,6 +175,11 @@ const CONC=["Em início","Em desenvolvimento","Desenvolvido"];
 const DISC_INF=["Português","Matemática","Natureza e Sociedade","Computação"];
 const DISC_FUND=["Português","Matemática","História","Geografia","Ciências","Artes","Inglês","Computação"];
 const DISC_PADRAO={"Maternal I":DISC_INF,"Maternal II":DISC_INF,"Maternal III":DISC_INF,"Pré-1":DISC_INF,"Pré-2":DISC_INF,"1º Ano":DISC_FUND,"2º Ano":DISC_FUND,"Reforço":[]};
+const MEDIA_MIN=6;
+const fmtNota=v=>v==null?"—":Number(v.toFixed(2)).toString().replace(".",",");
+const fmtMed=v=>v==null?"—":v.toFixed(1).replace(".",",");
+const sitTag=x=>x?`<span class="tg ${x==="Aprovado"?"t-ok":"t-late"}">${x}</span>`:`<span class="tg t-op">Em andamento</span>`;
+const calcDisc=x=>{const n=(x&&Array.isArray(x.n)?x.n:[]).slice(0,4);while(n.length<4)n.push(null);const v=n.map(y=>y===null||y===undefined||y===""?null:Number(y));const ok=v.every(y=>y!==null&&isFinite(y));const m=ok?Math.round(v.reduce((a,b)=>a+b,0)/4*10)/10:null;return{v,m,sit:m===null?null:m>=MEDIA_MIN?"Aprovado":"Reprovado"}};
 const discDe=t=>{const L=[...(DISC_PADRAO[t]||[])];db.disc.forEach(d=>{if((d.turmas||[]).includes(t)&&!L.some(n=>n.toLowerCase()===d.nome.toLowerCase()))L.push(d.nome)});return L};
 const ICONES=["🍎","🧩","🌙","🎨","🎂","📢","🎵","🌳"];
 const dia=d=>d.split("-").reverse().join("/");
@@ -351,8 +365,9 @@ function boletim(){
   return`<section class="card"><div class="hd"><h2>📖 Boletim pedagógico</h2><select id="bs" style="max-width:260px" aria-label="Aluno">${M.map(x=>`<option value="${x.id}" ${x.id===a.id?"selected":""}>${esc(x.nome)} — ${esc(x.turma)}</option>`).join("")}</select></div>
   ${avisoHTML()}<h3 style="margin:14px 0 0;font-size:1.05rem">🌱 Áreas de desenvolvimento</h3>${AREAS.map(r=>`<div class="area"><b>${r}</b>${dir()?`<select data-ar="${r}">${CONC.map(c=>`<option ${c===(b.areas[r]||CONC[0])?"selected":""}>${c}</option>`).join("")}</select>`:`<span class="tg t-op">${b.areas[r]||"Ainda não avaliado"}</span>`}</div>`).join("")}
   ${(()=>{const DS=discDe(a.turma),bd=b.disc||{},pad=(DISC_PADRAO[a.turma]||[]).map(x=>x.toLowerCase());
-    const lin=DS.map(r=>{const c=db.disc.find(d=>d.nome.toLowerCase()===r.toLowerCase()&&(d.turmas||[]).includes(a.turma));
-      return`<div class="area"><b>${esc(r)}${dir()&&c&&!pad.includes(r.toLowerCase())?` <button type="button" class="x" style="font-size:.8rem" data-a="dtur" data-i="${c.id}" data-t="${esc(a.turma)}" aria-label="Remover ${esc(r)} da turma ${esc(a.turma)}">✕</button>`:""}</b>${dir()?`<select data-dc="${esc(r)}">${CONC.map(c=>`<option ${c===(bd[r]||CONC[0])?"selected":""}>${c}</option>`).join("")}</select>`:`<span class="tg t-op">${esc(bd[r]||"Ainda não avaliado")}</span>`}</div>`}).join("");
+    const cab=DS.length?`<div class="dsc2 dh"><span>Disciplina</span><span>1ª</span><span>2ª</span><span>3ª</span><span>4ª</span><span>Média</span><span>Situação</span></div>`:"";
+    const lin=cab+DS.map(r=>{const c=db.disc.find(d=>d.nome.toLowerCase()===r.toLowerCase()&&(d.turmas||[]).includes(a.turma)),x=calcDisc(bd[r]);
+      return`<div class="dsc2"><b>${esc(r)}${dir()&&c&&!pad.includes(r.toLowerCase())?` <button type="button" class="x" style="font-size:.8rem" data-a="dtur" data-i="${c.id}" data-t="${esc(a.turma)}" aria-label="Remover ${esc(r)} da turma ${esc(a.turma)}">✕</button>`:""}</b>${x.v.map((y,k)=>`<div class="nc"><small>${k+1}ª aval.</small>${dir()?`<input data-nt data-d="${esc(r)}" data-k="${k}" inputmode="decimal" autocomplete="off" value="${y==null?"":fmtNota(y)}" aria-label="${esc(r)} — ${k+1}ª avaliação">`:`<span class="nv">${fmtNota(y)}</span>`}</div>`).join("")}<span class="med"><small>Média: </small><span data-med>${fmtMed(x.m)}</span></span><span class="sitw">${sitTag(x.sit)}</span></div>`}).join("");
     const form=dir()?`<div class="row" style="margin-top:12px;align-items:end"><div><label for="nd">➕ Cadastrar nova disciplina</label><input id="nd" placeholder="Ex.: Educação Física"></div><div><label for="ndt">Vale para</label><select id="ndt"><option value="${esc(a.turma)}">Só a turma ${esc(a.turma)}</option><option value="*">Todas as turmas</option></select></div><div><button type="button" class="pri" data-a="bdadd">Adicionar</button></div></div><p class="err" id="derr2" role="alert"></p>`:"";
     return(DS.length||dir()?`<h3 style="margin:22px 0 0;font-size:1.05rem">📚 Disciplinas — ${esc(a.turma)}</h3>`:"")+lin+form})()}
   <label for="ob">Observações da professora</label><textarea id="ob" ${dir()?"":"disabled"}>${esc(b.obs)}</textarea>${dir()?`<p><button class="pri" data-a="bsave">Salvar boletim</button> <span class="sm" id="ok"></span></p>`:""}</section>`;
@@ -446,7 +461,7 @@ function fichaHTML(a){
   const pago=F.filter(f=>f.pago).reduce((s,f)=>s+f.valor,0),aberto=F.filter(f=>!f.pago).reduce((s,f)=>s+f.valor,0);
   return`<div class="ficha">${cab("Ficha do aluno","Educação Infantil")}<h2>Cadastro</h2><table class="kv">${kv("Nome",a.nome)}${kv("Matrícula",a.mat)}${kv("Turma",a.turma)}${kv("Turno",a.turno)}${kv("Nascimento",a.nasc?dia(a.nasc):"")}${kv("Mãe",a.mae)}${kv("Pai",a.pai)}${kv("Responsável",a.resp)}${kv("Telefone",a.tel)}${kv("Endereço",a.end)}${kv("Mensalidade",brl(mensalDe(a)))}${kv("Observações",a.obs)}</table>
 <h2>Financeiro</h2>${F.length?`<table><tr><th>Mês</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr>${F.map(f=>`<tr><td>${mesNome(f.mes)}</td><td>${dia(f.venc)}</td><td class="num">${brl(f.valor)}</td><td>${status(f)[0]}${f.pago&&f.comp?.ok?" em "+dia(f.comp.ok):""}</td></tr>`).join("")}</table><p>Total pago: <b>${brl(pago)}</b> • Em aberto: <b>${brl(aberto)}</b></p>`:"<p>Sem mensalidades lançadas.</p>"}
-<h2>Boletim pedagógico</h2><table><tr><th>Área</th><th>Conceito</th></tr>${AREAS.map(r=>`<tr><td>${r}</td><td>${esc(ar[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table>${DS.length?`<h2>Disciplinas — ${esc(a.turma)}</h2><table><tr><th>Disciplina</th><th>Conceito</th></tr>${DS.map(r=>`<tr><td>${esc(r)}</td><td>${esc(dc[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table>`:""}<p><b>Observações da professora:</b> ${TXT(b.obs)}</p></div>`;
+<h2>Boletim pedagógico</h2><table><tr><th>Área</th><th>Conceito</th></tr>${AREAS.map(r=>`<tr><td>${r}</td><td>${esc(ar[r])||"Ainda não avaliado"}</td></tr>`).join("")}</table>${DS.length?`<h2>Disciplinas — ${esc(a.turma)}</h2><table><tr><th>Disciplina</th><th class="num">1ª</th><th class="num">2ª</th><th class="num">3ª</th><th class="num">4ª</th><th class="num">Média</th><th>Situação</th></tr>${DS.map(r=>{const x=calcDisc(dc[r]);return`<tr><td>${esc(r)}</td>${x.v.map(y=>`<td class="num">${fmtNota(y)}</td>`).join("")}<td class="num"><b>${fmtMed(x.m)}</b></td><td>${x.sit||"Em andamento"}</td></tr>`}).join("")}</table><p>Aprovação: média final igual ou superior a ${MEDIA_MIN}.</p>`:""}<p><b>Observações da professora:</b> ${TXT(b.obs)}</p></div>`;
 }
 const fichasDoc=l=>docHTML("Fichas dos alunos",ordAl(l).map(fichaHTML).join(""));
 function listaHTML(t){
@@ -492,7 +507,11 @@ $("#pg").onclick=e=>{
   else if(a==="pdel")db.posts=db.posts.filter(p=>p.id!==i);
   else if(a==="eadd"){const ti=$("#et").value.trim();if(!ti||!$("#ed").value)return;db.eventos.push({id:uid(),data:$("#ed").value,titulo:ti,turma:$("#eu").value,txt:$("#ex").value.trim()})}
   else if(a==="edel")db.eventos=db.eventos.filter(p=>p.id!==i);
-  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);const disc={...(db.bol[selAl]?.disc||{})};document.querySelectorAll("[data-dc]").forEach(s=>disc[s.dataset.dc]=s.value);db.bol[selAl]={areas,disc,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
+  else if(a==="bsave"){const areas={};document.querySelectorAll("[data-ar]").forEach(s=>areas[s.dataset.ar]=s.value);const disc={...(db.bol[selAl]?.disc||{})},nt=new Map();let ruim=false;
+  document.querySelectorAll("[data-nt]").forEach(inp=>{const q=inp.value.trim().replace(",",".");let v=q===""?null:Number(q);if(v!==null&&(!isFinite(v)||v<0||v>10)){ruim=true;inp.classList.add("bad");return}inp.classList.remove("bad");if(v!==null)v=Math.round(v*100)/100;const d=inp.dataset.d;if(!nt.has(d))nt.set(d,[null,null,null,null]);nt.get(d)[+inp.dataset.k]=v});
+  if(ruim){$("#ok").textContent="As notas precisam estar entre 0 e 10.";return}
+  nt.forEach((n,d)=>disc[d]={n});
+  db.bol[selAl]={areas,disc,obs:$("#ob").value,ruid:aluno(selAl)?.uid};save();$("#ok").textContent="Boletim salvo.";return}
   else if(a==="dadd"){
     const n=$("#dn1").value.trim().replace(/\s+/g," "),T=[...document.querySelectorAll("[data-dt]:checked")].map(x=>x.value),m=cadDisc(n,T);
     if(m){$("#derr").textContent=m;return}
@@ -536,6 +555,9 @@ $("#pg").onclick=e=>{
 document.addEventListener("input",e=>{if(e.target.id!=="tl")return;const d=e.target.value.replace(/\D/g,"").slice(0,11);e.target.value=d.length>10?d.replace(/(\d{2})(\d{5})(\d{4})/,"($1) $2-$3"):d.length>6?d.replace(/(\d{2})(\d{4})(\d{0,4})/,"($1) $2-$3"):d.length>2?d.replace(/(\d{2})(\d+)/,"($1) $2"):d});
 document.addEventListener("change",e=>{if(e.target.name!=="turma")return;const ds=$("#dsc");if(ds)ds.textContent="📚 Disciplinas: "+(discDe(e.target.value).join(", ")||"nenhuma");const m=$("#mv");if(m&&m.dataset.auto)m.value=(VAL[e.target.value]||0).toFixed(2).replace(".",",")});
 document.addEventListener("input",e=>{if(e.target.id==="mv")delete e.target.dataset.auto});
+document.addEventListener("input",e=>{const t=e.target;if(!t.matches||!t.matches("[data-nt]"))return;const row=t.closest(".dsc2"),v=[...row.querySelectorAll("[data-nt]")].map(i=>{const q=i.value.trim().replace(",",".");return q===""?null:Number(q)});
+  t.classList.toggle("bad",(()=>{const q=t.value.trim().replace(",",".");if(q==="")return false;const n=Number(q);return!isFinite(n)||n<0||n>10})());
+  const x=calcDisc({n:v.map(y=>y!==null&&(!isFinite(y)||y<0||y>10)?null:y)});row.querySelector("[data-med]").textContent=fmtMed(x.m);row.querySelector(".sitw").innerHTML=sitTag(x.sit)});
 $("#pg").onchange=e=>{if(e.target.id==="bs"){selAl=e.target.value;draw()}};
 </script>
 <script>
