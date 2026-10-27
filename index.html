@@ -225,10 +225,10 @@ else{
       if(d.exists()){souDir=true;U={role:"dir",nome:d.data().nome||u.email}}
       else{
         const r=await getDoc(doc(fs,"resp",u.uid));
-        if(!r.exists()){await signOut(auth);$("#err").textContent="Esta conta não tem acesso ao app.";return}
+        if(!r.exists()){await signOut(auth);$("#err").textContent="Esta conta não tem acesso ao app. Na coleção dir do Firestore, o ID do documento precisa ser exatamente este UID: "+u.uid;return}
         meuUid=u.uid;U={role:"resp",nome:r.data().nome||""};
       }
-    }catch(e){erro(e);return}
+    }catch(e){console.error(e);libera();$("#err").textContent="Sem permissão para ler o cadastro da conta ("+(e.code||e.message)+"). Publique as regras do Firestore (arquivo firestore.rules). UID desta conta: "+u.uid;return}
     iniciar();libera();$("#login").classList.add("hide");$("#app").classList.remove("hide");pg="inicio";draw();
   });
 }
